@@ -11,7 +11,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '1.61'
+version = '1.62'
 def buildTime = new Date()
 
 def generatedSrc = "$buildDir/generated-src/main/java"
@@ -34,6 +34,8 @@ dependencies {
     implementation 'net.sf.saxon:Saxon-HE:10.0'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
     implementation 'org.apache.xmlgraphics:batik-all:1.12'
+    implementation 'xml-apis:xml-apis-ext:1.3.04'
+    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.4'
 }
 
 configurations.all {
