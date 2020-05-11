@@ -14,6 +14,7 @@ import de.bottlecaps.railroad.core.Download;
 import de.bottlecaps.railroad.core.Parser;
 import de.bottlecaps.railroad.core.ResourceModuleUriResolver;
 import de.bottlecaps.railroad.core.TextWidth;
+import de.bottlecaps.railroad.core.XhtmlToSvgZip;
 import de.bottlecaps.railroad.core.XhtmlToZip;
 import de.bottlecaps.railroad.webapp.RailroadServer;
 import net.sf.saxon.Configuration;
@@ -44,6 +45,7 @@ public class Railroad
     boolean gui = false;
     int guiArgCount = 0;
     boolean zip = false;
+    boolean svg = false;
     boolean distZip = false;
     boolean markdown = false;
     boolean showEbnf = true;
@@ -168,6 +170,10 @@ public class Railroad
       else if (arg.equals("-png"))
       {
         zip = true;
+      }
+      else if (arg.equals("-svg"))
+      {
+        svg = true;
       }
       else if (arg.equals("-md"))
       {
@@ -296,7 +302,12 @@ public class Railroad
       if (strokeWidth != null)
         xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "stroke-width"), new XdmAtomicValue(strokeWidth));
 
-      if (zip)
+      if (svg)
+      {
+        XdmNode node = (XdmNode) xqueryEvaluator.iterator().next();
+        new XhtmlToSvgZip().convert(node.getUnderlyingNode(), output);
+      }
+      else if (zip)
       {
         XdmNode node = (XdmNode) xqueryEvaluator.iterator().next();
         new XhtmlToZip().convert(node.getUnderlyingNode(), output);
@@ -337,7 +348,7 @@ public class Railroad
     out.println("  released " + RailroadVersion.DATE);
     out.println("  from " + RR_URL);
     out.println();
-    out.println("Usage: java " + jar + file + " {-suppressebnf|-keeprecursion|-nofactoring|-noinline|-noepsilon|-color:COLOR|-offset:OFFSET|-png|-md|-out:FILE|width:PIXELS}... GRAMMAR");
+    out.println("Usage: java " + jar + file + " {-suppressebnf|-keeprecursion|-nofactoring|-noinline|-noepsilon|-color:COLOR|-offset:OFFSET|-png|-svg|-md|-out:FILE|width:PIXELS}... GRAMMAR");
     out.println("    or java " + jar + file + " -gui [-port:PORT]");
     out.println();
     out.println("  -suppressebnf    do not show EBNF next to generated diagrams");
@@ -348,6 +359,7 @@ public class Railroad
     out.println("  -color:COLOR     use COLOR as base color, pattern: " + COLOR_PATTERN);
     out.println("  -offset:OFFSET   hue offset to secondary color in degrees");
     out.println("  -png             create HTML+PNG in a ZIP file, rather than XHTML+SVG output");
+    out.println("  -svg             create HTML+SVG in a ZIP file, rather than XHTML+SVG output");
 //  out.println("  -md              create Markdown with embedded SVG, rather than XHTML+SVG output");
     out.println("  -out:FILE        create FILE, rather than writing result to standard output");
     out.println("  -width:PIXELS    try to break graphics into multiple lines, when width exceeds PIXELS (default 992)");
