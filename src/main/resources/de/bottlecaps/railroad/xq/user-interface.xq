@@ -208,7 +208,8 @@ declare function ui:html($tab as xs:string,
                                         $modified as xs:boolean,
                                         $errorlog as node()*,
                                         $view-uri as xs:string?,
-                                        $color as xs:string) as element()
+                                        $color as xs:string,
+                                        $styles as xs:boolean) as element()
 {
   let $width := xs:integer(ui:parameter-values("width", string($s:page-width)))
   return
@@ -222,13 +223,13 @@ declare function ui:html($tab as xs:string,
     {
       if (webapp:parameter-values("frame") = "diagram") then
       (
-        <head>{s:head($color, $width)}</head>,
+        <head>{s:head($color, $width, $styles)}</head>,
         <body>{$errorlog}</body>
       )
       else
       (
       <head>
-        {s:head($color, $width)}
+        {s:head($color, $width, $styles)}
         <link href="favicon.ico" rel="shortcut icon"/>,
         <title>Railroad Diagram Generator</title>,
       </head>,

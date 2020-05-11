@@ -53,6 +53,7 @@ public class Railroad
     boolean recursionElimination = true;
     boolean inline = true;
     boolean keep = true;
+    boolean styles = true;
     String color = null;
     int spread = 0;
     Integer padding = null;
@@ -199,6 +200,10 @@ public class Railroad
       {
         keep = false;
       }
+      else if (arg.equals("-nostyles"))
+      {
+        styles = false;
+      }
       else if (arg.equals("-distZip"))
       {
         distZip = true;
@@ -278,10 +283,11 @@ public class Railroad
           "declare variable $factoring external;\n" +
           "declare variable $inline external;\n" +
           "declare variable $keep external;\n" +
+          "declare variable $styles external;\n" +
           "declare variable $width external;\n" +
           "declare variable $color external;\n" +
           "declare variable $spread external;\n" +
-          "i:ebnf-to-xhtml($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, '" + RR_URL + "')";
+          "i:ebnf-to-xhtml($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $styles, $width, $color, $spread, '" + RR_URL + "')";
       XQueryExecutable executable = compiler.compile(query);
       XQueryEvaluator xqueryEvaluator = executable.load();
 
@@ -291,6 +297,7 @@ public class Railroad
       xqueryEvaluator.setExternalVariable(new QName("factoring"), new XdmAtomicValue(factoring));
       xqueryEvaluator.setExternalVariable(new QName("inline"), new XdmAtomicValue(inline));
       xqueryEvaluator.setExternalVariable(new QName("keep"), new XdmAtomicValue(keep));
+      xqueryEvaluator.setExternalVariable(new QName("styles"), new XdmAtomicValue(styles));
       xqueryEvaluator.setExternalVariable(new QName("width"), width == null ? XdmEmptySequence.getInstance() : new XdmAtomicValue(width));
       xqueryEvaluator.setExternalVariable(new QName("color"), color == null ? XdmEmptySequence.getInstance() : new XdmAtomicValue(color));
       xqueryEvaluator.setExternalVariable(new QName("spread"), new XdmAtomicValue(spread));
@@ -356,6 +363,7 @@ public class Railroad
     out.println("  -nofactoring     no left or right factoring");
     out.println("  -noinline        do not inline nonterminals that derive to single literals");
     out.println("  -noepsilon       remove nonterminal references that derive to epsilon only");
+    out.println("  -nostyles        do not output any CSS rules");
     out.println("  -color:COLOR     use COLOR as base color, pattern: " + COLOR_PATTERN);
     out.println("  -offset:OFFSET   hue offset to secondary color in degrees");
     out.println("  -png             create HTML+PNG in a ZIP file, rather than XHTML+SVG output");

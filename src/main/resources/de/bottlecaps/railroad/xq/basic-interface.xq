@@ -18,14 +18,15 @@ declare function i:ebnf-to-xhtml($ebnf as xs:string,
                                  $factoring as xs:boolean,
                                  $inline as xs:boolean,
                                  $keep as xs:boolean,
+                                 $styles as xs:boolean,
                                  $width as xs:integer?,
                                  $color as xs:string?,
                                  $spread as xs:integer,
                                  $uri as xs:string?) as element(xhtml:html)
 {
   <html xmlns="http://www.w3.org/1999/xhtml">
-    <head>{v:head(($color, $style:default-color)[1], $width)}</head>
-    <body>{i:ebnf-to-svg($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, $uri)}</body>
+    <head>{v:head(($color, $style:default-color)[1], $width, $styles)}</head>
+    <body>{i:ebnf-to-svg($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $styles, $width, $color, $spread, $uri)}</body>
   </html>
 };
 
@@ -35,6 +36,7 @@ declare function i:ebnf-to-svg($ebnf as xs:string,
                                $factoring as xs:boolean,
                                $inline as xs:boolean,
                                $keep as xs:boolean,
+                               $styles as xs:boolean,
                                $width as xs:integer?,
                                $color as xs:string?,
                                $spread as xs:integer,
@@ -59,6 +61,7 @@ declare function i:ebnf-to-svg($ebnf as xs:string,
         ($width, $v:page-width)[1],
         ($color, $style:default-color)[1],
         $spread,
+        $styles,
         $uri
       )
 };

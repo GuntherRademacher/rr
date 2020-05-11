@@ -1042,7 +1042,7 @@ declare function s:defs($color as xs:string)
  : @param $spread the hue offset.
  : @return the corresponding graphics element.
  :)
-declare function s:convert-to-svg($p as element(g:production), $page-width as xs:integer, $color as xs:string, $spread as xs:integer) as element(svg:svg)
+declare function s:convert-to-svg($p as element(g:production), $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $styles as xs:boolean) as element(svg:svg)
 {
   let $normalized := n:normalize($p)
   let $rendered := s:line-break($page-width, 0, 0, (), (), s:render-production(n:introduce-separators($normalized)))
@@ -1053,8 +1053,8 @@ declare function s:convert-to-svg($p as element(g:production), $page-width as xs
     <svg xmlns="http://www.w3.org/2000/svg"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          width="{$width + 1}" height="{$height + 1}">
-      <defs>{s:style($color, $spread)}</defs>
       {
+        if ($styles) then <defs>{s:style($color, $spread)}</defs> else (),
         s:translate(1 - xs:integer($dimensions/@x1), 1 - xs:integer($dimensions/@y1), $rendered)
       }
     </svg>
@@ -1429,12 +1429,17 @@ declare function s:process-annotations($nodes as node()*) as node()*
  : @param $color the color code.
  : @return the list of standard xhtml head entries.
  :)
-declare function s:head($color as xs:string, $page-width as xs:integer?) as element()+
+declare function s:head($color as xs:string, $page-width as xs:integer?, $styles as xs:boolean) as element()+
 {
   <meta http-equiv="Content-Type" content="application/xhtml+xml" xmlns="http://www.w3.org/1999/xhtml"/>,
   <meta name="generator" content="Railroad Diagram Generator {$s:version}" xmlns="http://www.w3.org/1999/xhtml"/>,
-  style:css($color, $page-width),
-  s:defs($color)
+  if ($styles) then
+    (
+      style:css($color, $page-width),
+      s:defs($color)
+    )
+  else
+    ()
 };
 
 (:~
@@ -1451,7 +1456,7 @@ declare function s:head($color as xs:string, $page-width as xs:integer?) as elem
  : @param $uri the rr generator link.
  : @return a list of XHTML elements and processing-instructions.
  :)
-declare function s:svg($grammar as element(g:grammar), $showEbnf as xs:boolean, $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $uri as xs:string) as node()*
+declare function s:svg($grammar as element(g:grammar), $showEbnf as xs:boolean, $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $styles as xs:boolean, $uri as xs:string) as node()*
 {
   let $g := n:group-productions-by-nonterminal($grammar)
   let $productions := $g//g:production
@@ -1463,7 +1468,7 @@ declare function s:svg($grammar as element(g:grammar), $showEbnf as xs:boolean, 
     for $production in $productions
     let $p := s:process-annotations($production)
     let $anchor := data($p/@name)
-    let $svg := s:combine-paths(s:convert-to-svg($p, $page-width, $color, $spread))
+    let $svg := s:combine-paths(s:convert-to-svg($p, $page-width, $color, $spread, $styles))
     let $references :=
       for $ref in $g/g:production[.//g:ref/@name = $anchor]/@name
       order by $ref
