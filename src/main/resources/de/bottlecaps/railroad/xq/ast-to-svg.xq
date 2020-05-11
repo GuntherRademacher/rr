@@ -1297,7 +1297,7 @@ declare function s:combine-path($node)
       if (not($node is $paths[last()])) then
         ()
       else
-        element svg:path
+        element path
         {
           $node/@class,
           attribute d
@@ -1308,7 +1308,7 @@ declare function s:combine-path($node)
               (
                 for $node in $paths
                 return
-                  if ($node/self::svg:path) then
+                  if ($node/self::path) then
                     $node/@d
                   else
                   (
