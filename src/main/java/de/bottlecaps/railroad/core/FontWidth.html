@@ -1,0 +1,188 @@
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    </head>
+    <!--
+     ! The contract of Normal.get(i0) is to return the width required when
+     ! rendering codepoint i0, with font-weight:normal, in tenths of a pixel.
+     !
+     ! This was implemented as follows:
+     !
+     ! (1) use browser to measure width for each codepoint in range 0-0x10FFF.
+     !     This is done in FontWidth.html
+     !
+     ! (2) put the result, a comma-separated list of integers, in file
+     !     Normal.java.compress
+     !
+     ! (3) run 'Generate' of http://bottlecaps.de/rex on that file, without any
+     !     command line options. This results in Normal.java
+     !
+     ! (4) adapt package name in Normal.java manually
+     !
+     ! The same applies to Bold.get(i0), using font-weight:bold.
+     !
+     ! For best results, measure widths on multiple browsers and select the
+     ! maximum measured width for each codepoint.
+     !-->
+    <body>
+        <div id="container" style="position: absolute; visibility: hidden; font-family: Verdana; font-size: 12px;"></div>
+        <b>font-family:</b>
+        <input type="text" size="10" id="fontFamily" value="Verdana" oninput="reset()"/>
+        <b>&nbsp;&nbsp;font-size:</b>
+        <input type="text" size="4" id="fontSize" value="12px" oninput="reset()"/>
+        <b>&nbsp;&nbsp;font-weight:</b>
+        <input type="radio" name="fontWeight" value="normal" checked oninput="reset()">normal
+        <input type="radio" name="fontWeight" value="bold" oninput="reset()">bold&nbsp;&nbsp;&nbsp;
+        <b>&nbsp;max codepoint:<b>
+        <input type="text" size="6" id="maxCodepoint" value="0x10FFFF" oninput="reset()"/>
+        <input type="button" value="Create codetable" onclick="create()"/>
+        <br>
+        <br>
+        <textarea id="codetable" style="width:100%; height: 400px" readonly></textarea>
+        <br>
+        <br>
+        <div id="test" style="visibility: hidden">
+            <table>
+                <tr>
+                    <td align="right"><b>Test:</b></td>
+                    <td><input type="text" id="input" oninput="calculate();"/></td>
+                </tr>
+                <tr>
+                    <td align="right"><b id="label"></b></td>
+                    <td><span id="proof"></span></td>
+                </tr>
+                <tr>
+                    <td align="right"><b>Actual width:</b></td>
+                    <td><div id="actual" style="font-family: Verdana; font-size: 12px;"></div></td>
+                </tr>
+                <tr>
+                    <td align="right"><b>Calculated width:</b></td>
+                    <td><div id="calculated" style="font-family: Verdana; font-size: 12px;"></div></td>
+                </tr>
+            </table>
+        </div>
+
+        <script type="text/javascript">
+            String.fromCodePoint = function()
+            {
+                var chars = Array.prototype.slice.call(arguments);
+                for (var i = chars.length; i-- > 0; )
+                {
+                    var n = chars[i] - 0x10000;
+                    if (n >= 0)
+                        chars.splice(i, 1, 0xD800 + (n >> 10), 0xDC00 + (n & 0x3FF));
+                }
+                return String.fromCharCode.apply(null, chars);
+            };
+
+            var container = document.getElementById("container");
+            var fontWeight = document.getElementById("fontWeight");
+            var maxCodepoint = document.getElementById("maxCodepoint");
+            var actual = document.getElementById("actual");
+            var calculated = document.getElementById("calculated");
+            var codetable = document.getElementById("codetable");
+            var test = document.getElementById("test");
+            var input = document.getElementById("input");
+            var label = document.getElementById("label");
+            var proof = document.getElementById("proof");
+            var factor = 10;
+            var codes = null;
+
+            function textWidth(text)
+            {
+                container.innerHTML = text.replace(/^\s*|\s*$/g, "").replace(/\s+/g, " ");
+                return container.offsetWidth;
+            }
+
+            function reset()
+            {
+                codetable.value = "";
+                test.style.visibility = "hidden";
+            }
+
+            function create()
+            {
+                codetable.value = "please wait - codetable is being created";
+
+                setTimeout(function()
+                    {
+                        container.style.fontFamily = document.getElementById("fontFamily").value;
+                        container.style.fontSize = document.getElementById("fontSize").value;
+                        container.style.fontWeight = document.querySelector('input[name="fontWeight"]:checked').value;
+
+                        codes = new Array;
+                        var ww = textWidth(">>");
+                        var last = parseInt(maxCodepoint.value);
+                        for (var i = 0; i <= last; ++i)
+                        {
+                            var width = 0;
+                            if (i < 0xD800 || i >= 0xE000)
+                            {
+                                var c = String.fromCodePoint(i);
+                                var text = ">";
+                                for (var j = 0; j < factor; ++j)
+                                    text += c;
+                                text += ">";
+                                if (textWidth(c) === 0)
+                                    width = (textWidth(">" + c + ">") - ww) * factor;
+                                else
+                                    width = textWidth(text) - ww;
+                                width = width < 0 ? 0 : width;
+                            }
+                            codes[i] = width;
+                        }
+
+                        var toString = "";
+                        var length = codes.length;
+                        for (var i = 0; i < length; ++i)
+                        {
+                            var code = codes[i];
+                            toString += code;
+                            if (i != length - 1)
+                            {
+                                toString += ",";
+                                if ((i % 32) == 31) toString += "\n";
+                            }
+                        }
+                        codetable.value = toString;
+
+                        label.textContent =
+                            container.style.fontFamily + ", " +
+                            container.style.fontSize + ", " +
+                            container.style.fontWeight + ":";
+
+                        proof.style.fontFamily = container.style.fontFamily;
+                        proof.style.fontSize = container.style.fontSize;
+                        proof.style.fontWeight = container.style.fontWeight;
+
+                        test.style.visibility = "visible";
+                        calculate();
+                    }, 10);
+            }
+
+            function calculate()
+            {
+                proof.textContent = input.value;
+                actual.textContent = textWidth(input.value);
+
+                var myLength = 0;
+                for (var i = 0; i < input.value.length; ++i)
+                {
+                    var codePoint = input.value.charCodeAt(i);
+                    if (codePoint >= 0xd800 && codePoint <= 0xe7ff)
+                    {
+                        var c1 = input.value.charCodeAt(i + 1);
+                        if (c1 >= 0xdc00 && c1 < 0xe000)
+                        {
+                            ++i;
+                            codePoint = ((codePoint & 0x3ff) << 10) + (c1 & 0x3ff) + 0x10000;
+                        }
+                    }
+                    myLength += codes[codePoint];
+                }
+                myLength = Math.round(myLength / factor);
+                calculated.textContent = myLength;
+            }
+        </script>
+    </body>
+</html>
