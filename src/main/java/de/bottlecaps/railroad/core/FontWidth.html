@@ -115,6 +115,8 @@
                         var last = parseInt(maxCodepoint.value);
                         for (var i = 0; i <= last; ++i)
                         {
+                            if (i % 1000)
+                                console.log(i.toString(16), "/", last.toString(16));
                             var width = 0;
                             if (i < 0xD800 || i >= 0xE000)
                             {
