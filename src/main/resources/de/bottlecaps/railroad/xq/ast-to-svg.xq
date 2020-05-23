@@ -446,7 +446,7 @@ declare function s:rect($x, $y, $text, $style, $class)
   )
   return
   (
-    if ($class = "nonterminal") then
+    if ($class = "nonterminal" and false()) then
       <a xlink:href="#{$text}" xlink:title="{$text}">{$text-box}</a>
     else
       $text-box,
