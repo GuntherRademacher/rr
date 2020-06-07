@@ -12,16 +12,15 @@ declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
 
 (:~
  : Convert a char code from the EBNF input into the representation
- : for AST use, i.e. strip the leading "#x" and ensure the result
- : has at least 4 hex digits.
+ : for AST use, i.e. strip the leading "#x".
  :
  : @param $code the char code as it occurred in the input, with a "#x"
  : prefix.
- : @return the char code string normalized to at least 4 hex digits.
+ : @return the hex char code string, without the "#x" prefix.
  :)
 declare function a:charCode($code as xs:string) as xs:string
 {
-  concat(substring('00000', string-length($code)), substring($code, 3))
+  substring($code, 3)
 };
 
 (:~

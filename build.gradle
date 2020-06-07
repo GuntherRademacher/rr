@@ -11,7 +11,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '1.62'
+version = '1.62+'
 def buildTime = new Date()
 
 def generatedSrc = "$buildDir/generated-src/main/java"
