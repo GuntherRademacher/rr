@@ -209,10 +209,10 @@ declare function a:ast($nodes as node()*) as node()*
  : @param $ast the AST fragment.
  : @param $operators the closure operators.
  : @return the AST fragment for the parse tree fragment, which is
- : a sequence of elements in the XPath grammar namespace, or an
- : xhref attribute node.
+ : a sequence of elements in the XPath grammar namespace, an
+ : xhref attribute node, or a processing instruction.
  :)
-declare function a:closure($ast as element()*, $operators as element(TOKEN)*) as element()*
+declare function a:closure($ast as node()*, $operators as element(TOKEN)*) as node()*
 {
   if (empty($operators)) then
     $ast
