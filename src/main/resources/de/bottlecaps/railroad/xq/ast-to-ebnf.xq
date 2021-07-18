@@ -389,16 +389,58 @@ declare function b:render-charClass($charClass as element(g:charClass)) as xs:st
           for $c in $charClass/*
           return if ($c/self::g:char) then string($c) else b:render-items($c)
         for $item at $i in $rendered
-        return
-          if ($i != 1 and starts-with($item, "-")) then
-            ("#x2D", substring($item, 2))
-          else if (starts-with($item, "]")) then
-            ("#x5D", substring($item, 2))
+        let $item :=
+          if ($i != 1 and $item = "-") then
+            "#x2D"
+          else if ($i != 1 and string-length($item) = 3 and starts-with($item, "--")) then
+            concat("#x2D-#x", b:to-string(16, string-to-codepoints(substring($item, 3))))
+          else if ($item = "]") then
+            "#x5D"
+          else if (string-length($item) = 3 and starts-with($item, "]-")) then
+            concat("#x5D-#x", b:to-string(16, string-to-codepoints(substring($item, 3))))
+          else if ($item = "#") then
+            "#x23"
+          else if (string-length($item) = 3 and starts-with($item, "#-")) then
+            concat("#x23-#x", b:to-string(16, string-to-codepoints(substring($item, 3))))
           else
-            $item,
+            $item
+        order by starts-with($item, "#")
+        return $item,
         ""
       )
     return concat("[", replace($chars, "^\^", "#x5E"), "]")
+};
+
+(:~
+ : Convert an integer value to string representation. This is a
+ : tail-recursive helper for the 2-argument function of the same
+ : name.
+ :
+ : @param $base the numeral system base: 2, 8, 10, or 16.
+ : @param $todo the uncoverted integer.
+ : @param $done the converted string as accumulated in previous
+ : recursion levels.
+ : @return the string representation.
+ :)
+declare function b:to-string($base as xs:integer, $todo as xs:integer, $done as xs:string?) as xs:string
+{
+  if ($todo eq 0) then
+    ($done, "0")[1]
+  else
+    let $done := concat(substring("0123456789ABCDEF", 1 + $todo mod $base, 1), $done)
+    return b:to-string($base, $todo idiv $base, $done)
+};
+
+(:~
+ : Convert an integer value to string representation.
+ :
+ : @param $base the numeral system base: 2, 8, 10, or 16.
+ : @param $todo the uncoverted integer.
+ : @return the string representation.
+ :)
+declare function b:to-string($base as xs:integer, $todo as xs:integer) as xs:string
+{
+  b:to-string($base, $todo, ())
 };
 
 (:~
