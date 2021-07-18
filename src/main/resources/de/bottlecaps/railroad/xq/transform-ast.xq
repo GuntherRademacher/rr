@@ -65,37 +65,44 @@ declare function t:remove-trivial-nonterminals($grammar as element(g:grammar),
  : @param $grammar the grammar.
  : @param $factoring the factoring options, i.e. "none", "left-only", "full-left", "right-only", "full-right"
  : "left-right", or "right-left".
+ : @param $inline the string inlining option.
+ : @param $keep the empty keeping option.
  : @return the transformed grammar.
  :)
 declare function t:factorize($grammar as element(g:grammar),
-                             $factoring as xs:string) as element(g:grammar)
+                             $factoring as xs:string,
+                             $inline as xs:boolean,
+                             $keep as xs:boolean) as element(g:grammar)
 {
-  if ($factoring = "none") then
-    $grammar
-  else
-    let $g3 := n:normalize($grammar)
-    let $g4 :=
-      n:denormalize
-      (
-        n:introduce-separators
+  let $remove := not($keep)
+  let $g1 := if ($inline or $remove) then t:remove-trivial-nonterminals($grammar, $inline, $remove) else $grammar
+  return
+    if ($factoring = ("", "none")) then
+      $g1
+    else
+      let $g2 := n:normalize($g1)
+      let $g3 :=
+        n:denormalize
         (
-          if ($factoring = "left-only") then
-            t:left-factorize($g3)
-          else if ($factoring = "right-only") then
-            t:right-factorize($g3)
-          else if ($factoring = "full-left") then
-            t:left-factorize(t:right-factorize(t:left-factorize($g3)))
-          else if ($factoring = "full-right") then
-            t:right-factorize(t:left-factorize(t:right-factorize($g3)))
-          else
-            error(xs:QName("t:factorize"), concat("invalid argument: $factoring: ", $factoring))
+          n:introduce-separators
+          (
+            if ($factoring = "left-only") then
+              t:left-factorize($g2)
+            else if ($factoring = "right-only") then
+              t:right-factorize($g2)
+            else if ($factoring = "full-left") then
+              t:left-factorize(t:right-factorize(t:left-factorize($g2)))
+            else if ($factoring = "full-right") then
+              t:right-factorize(t:left-factorize(t:right-factorize($g2)))
+            else
+              error(xs:QName("t:factorize"), concat("invalid argument: $factoring: ", $factoring))
+          )
         )
-      )
-    return
-      if (deep-equal($grammar, $g4)) then
-        $grammar
-      else
-        t:factorize($g4, $factoring)
+      return
+        if (deep-equal($grammar, $g3)) then
+          $grammar
+        else
+          t:factorize($g3, $factoring, $inline, $keep)
 };
 
 (:~
@@ -114,17 +121,14 @@ declare function t:transform($grammar as element(g:grammar),
                              $inline as xs:boolean,
                              $keep as xs:boolean) as element(g:grammar)
 {
-  let $remove := not($keep)
-  let $g1 := if ($inline or $remove) then t:remove-trivial-nonterminals($grammar, $inline, $remove) else $grammar
-  let $g2 := if (exists($recursion-removal)) then r:eliminate-recursion($g1, $recursion-removal) else $g1
-  let $g3 := if ($factoring = ("", "none")) then $g2 else t:factorize($g2, $factoring)
+  let $g1 := if (exists($recursion-removal)) then r:eliminate-recursion($grammar, $recursion-removal) else $grammar
+  let $g2 := t:factorize($g1, $factoring, $inline, $keep)
   return
     if (empty($recursion-removal)) then
-      $g3
+      $g2
     else
-      let $g4 := t:inline($g3, r:eliminated-recursion-with-single-reference($grammar, $g3, $recursion-removal))
-      let $g5 := if ($factoring = ("", "none")) then $g4 else t:factorize($g4, $factoring)
-      return $g5
+      let $g3 := t:inline($g2, r:eliminated-recursion-with-single-reference($grammar, $g2, $recursion-removal))
+      return if ($factoring = ("", "none")) then $g3 else t:factorize($g3, $factoring, $inline, $keep)
 };
 
 (:~
