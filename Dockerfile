@@ -1,4 +1,4 @@
-FROM gradle:jdk8
+FROM gradle:6.4-jdk8
 
 WORKDIR /scratch
 
