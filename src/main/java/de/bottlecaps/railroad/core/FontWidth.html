@@ -1,6 +1,9 @@
 <html>
     <head>
         <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<style>
+ @import url('https://fonts.googleapis.com/css2?family=Encode+Sans+Expanded:wght@100;300&family=Fira+Code&family=Inter:wght@300;400;500;700&display=swap');
+</style>
     </head>
     <!--
      ! The contract of Normal.get(i0) is to return the width required when
@@ -25,16 +28,16 @@
      ! maximum measured width for each codepoint.
      !-->
     <body>
-        <div id="container" style="position: absolute; visibility: hidden; font-family: Verdana; font-size: 12px;"></div>
+        <div id="container" style="position: absolute; visibility: hidden; font-family: "Inter"; font-size: 14px;"></div>
         <b>font-family:</b>
-        <input type="text" size="10" id="fontFamily" value="Verdana" oninput="reset()"/>
+        <input type="text" size="10" id="fontFamily" value="Inter" oninput="reset()"/>
         <b>&nbsp;&nbsp;font-size:</b>
-        <input type="text" size="4" id="fontSize" value="12px" oninput="reset()"/>
+        <input type="text" size="4" id="fontSize" value="14px" oninput="reset()"/>
         <b>&nbsp;&nbsp;font-weight:</b>
         <input type="radio" name="fontWeight" value="normal" checked oninput="reset()">normal
         <input type="radio" name="fontWeight" value="bold" oninput="reset()">bold&nbsp;&nbsp;&nbsp;
         <b>&nbsp;max codepoint:<b>
-        <input type="text" size="6" id="maxCodepoint" value="0x10FFFF" oninput="reset()"/>
+        <input type="text" size="6" id="maxCodepoint" value="0xFF" oninput="reset()"/>
         <input type="button" value="Create codetable" onclick="create()"/>
         <br>
         <br>
@@ -146,7 +149,19 @@
                                 if ((i % 32) == 31) toString += "\n";
                             }
                         }
-                        codetable.value = toString;
+                        var fontWeight = container.style.fontWeight;
+                        var className = fontWeight.charAt(0).toUpperCase() + fontWeight.slice(1);
+                        codetable.value = `
+                          package de.bottlecaps.railroad.core;
+
+                          public class ${className}
+                          {
+                            public static int get(int i0)
+                            {
+                                int[] widths = {${toString}};
+                                return widths[i0];
+                            }
+                          }`;
 
                         label.textContent =
                             container.style.fontFamily + ", " +
