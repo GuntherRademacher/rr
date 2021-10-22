@@ -56,6 +56,7 @@ public class Railroad
     Integer padding = null;
     Integer strokeWidth = null;
     Integer width = null;
+    Charset charset = null;
     boolean errors = false;
 
     for (int i = 0; i < args.length; ++i)
@@ -197,6 +198,10 @@ public class Railroad
       {
         distZip = true;
       }
+      else if (arg.startsWith("-enc:"))
+      {
+        charset = Charset.forName(arg.substring(5));
+      }
       else if (arg.equals("-"))
       {
         input = true;
@@ -254,7 +259,17 @@ public class Railroad
     }
     else
     {
-      String ebnf = decode(read(System.in));
+      byte[] bytes = read(System.in);
+
+      String ebnf;
+      if (charset == null)
+      {
+        ebnf = decode(bytes);
+      }
+      else
+      {
+        ebnf = decode(bytes, 0, charset);
+      }
 
       Configuration configuration = new Configuration();
       configuration.registerExtensionFunction(new Parser.SaxonDefinition_Grammar());
@@ -351,8 +366,9 @@ public class Railroad
 //  out.println("  -md              create Markdown with embedded SVG, rather than XHTML+SVG output");
     out.println("  -out:FILE        create FILE, rather than writing result to standard output");
     out.println("  -width:PIXELS    try to break graphics into multiple lines, when width exceeds PIXELS (default 992)");
+    out.println("  -enc:ENCODING    set grammar input encoding (default: autodetect UTF8/16 or use system encoding)");
     out.println();
-    out.println("  GRAMMAR          path of grammar, in W3C style EBNF, default encoding (use '-' for stdin)");
+    out.println("  GRAMMAR          path of grammar, in W3C style EBNF (use '-' for stdin)");
     out.println();
     out.println("  -gui             run GUI on http://localhost:" + DEFAULT_PORT + "/");
     out.println("  -port:PORT       use PORT rather than " + DEFAULT_PORT);
