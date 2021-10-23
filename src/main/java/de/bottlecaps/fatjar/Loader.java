@@ -19,7 +19,7 @@ public class Loader
 {
   public static final String FATJAR_MAIN_CLASS = "FatJar-Main-Class";
   public static final String FATJAR_JARS = "FatJar-Jars";
-  public final static String FATJAR_PROTOCOL = "fatjar";
+  public static final String FATJAR_PROTOCOL = "fatjar";
 
   public static void main(String[] args) throws Exception
   {
