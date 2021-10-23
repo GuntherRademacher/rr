@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.HttpURLConnection;
@@ -376,15 +375,8 @@ public class ExtensionFunctions implements Initializer
           @Override
           public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException
           {
-            try
-            {
-              String base64 = arguments[0].head().getStringValue();
-              return new StringValue(new String(Base64.getDecoder().decode(base64), UTF_8));
-            }
-            catch (UnsupportedEncodingException e)
-            {
-              throw new RuntimeException(e);
-            }
+            String base64 = arguments[0].head().getStringValue();
+            return new StringValue(new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8));
           }
         }
       );

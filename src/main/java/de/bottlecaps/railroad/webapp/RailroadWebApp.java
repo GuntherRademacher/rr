@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
@@ -165,7 +166,7 @@ public class RailroadWebApp
           serializer.setOutputProperty(Property.ENCODING, UTF_8);
           serializer.serializeXdmValue(result);
           serializer.close();
-          String base64 = new String(byteArrayOutputStream.toByteArray(), UTF_8);
+          String base64 = new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
 
           try (OutputStream outputStream = response.getOutputStream()) {
             outputStream.write(Base64.getDecoder().decode(base64));

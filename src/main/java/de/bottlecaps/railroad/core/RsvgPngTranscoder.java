@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import net.sf.saxon.Configuration;
 import net.sf.saxon.s9api.Processor;
@@ -131,7 +132,7 @@ public class RsvgPngTranscoder implements PngTranscoder
             break;
           }
         }
-        string = new String(buffer, 0, size, "UTF-8");
+        string = new String(buffer, 0, size, StandardCharsets.UTF_8);
       }
       catch (IOException e)
       {
