@@ -6,12 +6,14 @@ plugins {
     id 'java'
     id 'war'
     id 'com.github.jk1.dependency-license-report' version '1.16'
+    id 'maven-publish'
 }
 
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
 version = '1.63'
+group = 'de.bottlecaps.rr'
 def buildTime = new Date()
 
 def generatedSrc = "$buildDir/generated-src/main/java"
@@ -152,5 +154,18 @@ task distZip(type:JavaExec) {
 
     doFirst {
       mkdir workingDir
+    }
+}
+
+publishing {
+    publications {
+        jar(MavenPublication) {
+            artifactId = 'rr-lib'
+            from components.java
+        }
+        war(MavenPublication) {
+            artifactId = 'rr-webapp'
+            from components.web
+        }
     }
 }
