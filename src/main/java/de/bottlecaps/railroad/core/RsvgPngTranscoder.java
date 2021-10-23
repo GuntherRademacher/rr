@@ -64,8 +64,7 @@ public class RsvgPngTranscoder implements PngTranscoder
         throw new RuntimeException(e.getMessage(), e);
       }
 
-      FileInputStream fis = new FileInputStream(pngFile);
-      try
+      try (FileInputStream fis = new FileInputStream(pngFile))
       {
         byte buffer[] = new byte[2 * 1024 * 1024];
         int size = 0;
@@ -79,10 +78,6 @@ public class RsvgPngTranscoder implements PngTranscoder
           }
         }
         o.write(buffer, 0, size);
-      }
-      finally
-      {
-        fis.close();
       }
     }
     finally
