@@ -67,7 +67,7 @@ public class RsvgPngTranscoder implements PngTranscoder
 
       try (FileInputStream fis = new FileInputStream(pngFile))
       {
-        byte buffer[] = new byte[2 * 1024 * 1024];
+        byte[] buffer = new byte[2 * 1024 * 1024];
         int size = 0;
         for (int n = 0; n >= 0; n = fis.read(buffer, size, buffer.length - size))
         {
@@ -121,7 +121,7 @@ public class RsvgPngTranscoder implements PngTranscoder
     {
       try
       {
-        byte buffer[] = new byte[2 * 1024 * 1024];
+        byte[] buffer = new byte[2 * 1024 * 1024];
         int size = 0;
         for (int n = 0; n >= 0; n = stream.read(buffer, size, buffer.length - size))
         {

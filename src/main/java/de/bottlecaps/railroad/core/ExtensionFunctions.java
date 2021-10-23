@@ -129,7 +129,7 @@ public class ExtensionFunctions implements Initializer
     {
       javax.xml.namespace.QName qName = javax.xml.namespace.QName.valueOf(name);
       String namespace = qName.getNamespaceURI();
-      String steps[] = namespace.replaceAll("/$", "").split("/");
+      String[] steps = namespace.replaceAll("/$", "").split("/");
       return new StructuredQName(steps[steps.length - 1], namespace, qName.getLocalPart());
     }
   }
