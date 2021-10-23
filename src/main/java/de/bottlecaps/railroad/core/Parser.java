@@ -66,11 +66,11 @@ public class Parser
 
   public interface EventHandler
   {
-    public void reset(CharSequence string);
-    public void startNonterminal(String name, int begin);
-    public void endNonterminal(String name, int end);
-    public void terminal(String name, int begin, int end);
-    public void whitespace(int begin, int end);
+    void reset(CharSequence string);
+    void startNonterminal(String name, int begin);
+    void endNonterminal(String name, int end);
+    void terminal(String name, int begin, int end);
+    void whitespace(int begin, int end);
   }
 
   public static class TopDownTreeBuilder implements EventHandler

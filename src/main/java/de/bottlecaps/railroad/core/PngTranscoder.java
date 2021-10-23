@@ -5,5 +5,5 @@ import net.sf.saxon.s9api.XdmNode;
 
 public interface PngTranscoder
 {
-  public void transcode(XdmNode e, OutputStream o) throws Exception;
+  void transcode(XdmNode e, OutputStream o) throws Exception;
 }
