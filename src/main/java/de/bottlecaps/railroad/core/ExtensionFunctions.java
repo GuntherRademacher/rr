@@ -97,13 +97,13 @@ public class ExtensionFunctions implements Initializer
 
     public void set(T value, XQueryEvaluator evaluator)
     {
-      evaluator.setExternalVariable(qname, XdmValue.wrap(new ObjectValue<T>(value)));
+      evaluator.setExternalVariable(qname, XdmValue.wrap(new ObjectValue<>(value)));
     }
   }
 
-  public static final GlobalVariable<Request> request = new GlobalVariable<Request>(Request.class);
-  public static final GlobalVariable<Response> response = new GlobalVariable<Response>(Response.class);
-  public static final GlobalVariable<Serializer> serializer = new GlobalVariable<Serializer>(Serializer.class);
+  public static final GlobalVariable<Request> request = new GlobalVariable<>(Request.class);
+  public static final GlobalVariable<Response> response = new GlobalVariable<>(Response.class);
+  public static final GlobalVariable<Serializer> serializer = new GlobalVariable<>(Serializer.class);
 
   private abstract static class ExtensionFunction extends ExtensionFunctionDefinition
   {
@@ -488,7 +488,7 @@ public class ExtensionFunctions implements Initializer
           @Override
           public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException
           {
-            List<StringValue> result = new ArrayList<StringValue>();
+            List<StringValue> result = new ArrayList<>();
             try
             {
               Collection<MultiPart> parts = request.get(context).getParts();
@@ -525,7 +525,7 @@ public class ExtensionFunctions implements Initializer
           @Override
           public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException
           {
-            List<StringValue> result = new ArrayList<StringValue>();
+            List<StringValue> result = new ArrayList<>();
             Enumeration<String> parameterNames = request.get(context).getParameterNames();
             if (parameterNames != null)
             {
@@ -564,7 +564,7 @@ public class ExtensionFunctions implements Initializer
               URLConnection connection = new URL(url).openConnection();
               int responseCode = connection instanceof HttpURLConnection ? ((HttpURLConnection) connection).getResponseCode() : 200;
               String resp = "<" + RESPONSE + " xmlns=\"" + HTTPCLIENT_NAMESPACE + "\" status=\"" + responseCode + "\"/>";
-              List<Item> result = new ArrayList<Item>();
+              List<Item> result = new ArrayList<>();
               result.add(parseXml(context, resp, "text/xml").iterateAxis(Axis.CHILD.getAxisNumber()).next());
               String contentType = connection.getContentType();
               if (isHtml(contentType) || isXml(contentType))
@@ -820,7 +820,7 @@ public class ExtensionFunctions implements Initializer
           {
             String name = arguments[0].head().getStringValue();
             Request httpRequest = request.get(context);
-            List<StringValue> result = new ArrayList<StringValue>();
+            List<StringValue> result = new ArrayList<>();
             for (String value : parameterValues(httpRequest, name))
             {
               result.add(new StringValue(value));
