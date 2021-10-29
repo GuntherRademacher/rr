@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import net.sf.saxon.Configuration;
 import net.sf.saxon.s9api.Processor;
@@ -64,10 +65,9 @@ public class RsvgPngTranscoder implements PngTranscoder
         throw new RuntimeException(e.getMessage(), e);
       }
 
-      FileInputStream fis = new FileInputStream(pngFile);
-      try
+      try (FileInputStream fis = new FileInputStream(pngFile))
       {
-        byte buffer[] = new byte[2 * 1024 * 1024];
+        byte[] buffer = new byte[2 * 1024 * 1024];
         int size = 0;
         for (int n = 0; n >= 0; n = fis.read(buffer, size, buffer.length - size))
         {
@@ -79,10 +79,6 @@ public class RsvgPngTranscoder implements PngTranscoder
           }
         }
         o.write(buffer, 0, size);
-      }
-      finally
-      {
-        fis.close();
       }
     }
     finally
@@ -125,7 +121,7 @@ public class RsvgPngTranscoder implements PngTranscoder
     {
       try
       {
-        byte buffer[] = new byte[2 * 1024 * 1024];
+        byte[] buffer = new byte[2 * 1024 * 1024];
         int size = 0;
         for (int n = 0; n >= 0; n = stream.read(buffer, size, buffer.length - size))
         {
@@ -136,7 +132,7 @@ public class RsvgPngTranscoder implements PngTranscoder
             break;
           }
         }
-        string = new String(buffer, 0, size, "UTF-8");
+        string = new String(buffer, 0, size, StandardCharsets.UTF_8);
       }
       catch (IOException e)
       {

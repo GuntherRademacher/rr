@@ -128,36 +128,35 @@ public class XhtmlToZip
     evaluator.setExternalVariable(new QName("format"), new XdmAtomicValue("png"));
     XdmValue result = evaluator.evaluate();
 
-    ZipOutputStream zipFile = new ZipOutputStream(zip);
-
-    for (XdmNode e = firstElementChild((XdmNode) result.itemAt(0));
-         e != null;
-         e = nextElementChild(e))
+    try (ZipOutputStream zipFile = new ZipOutputStream(zip))
     {
-      String name = URLDecoder.decode(e.getAttributeValue(new QName("name")), StandardCharsets.UTF_8.name());
-      zipFile.putNextEntry(new ZipEntry(name));
-
-      XdmNode content = firstElementChild(e);
-      if (name.endsWith(".png"))
+      for (XdmNode e = firstElementChild((XdmNode) result.itemAt(0));
+           e != null;
+           e = nextElementChild(e))
       {
-        if (verbose)
+        String name = URLDecoder.decode(e.getAttributeValue(new QName("name")), StandardCharsets.UTF_8.name());
+        zipFile.putNextEntry(new ZipEntry(name));
+
+        XdmNode content = firstElementChild(e);
+        if (name.endsWith(".png"))
         {
-          System.out.println("converting " + name + " using Batik");
+          if (verbose)
+          {
+            System.out.println("converting " + name + " using Batik");
+          }
+          toPng(content, zipFile);
         }
-        toPng(content, zipFile);
-      }
-      else if (name.endsWith(".htm") || name.endsWith(".html"))
-      {
-        toHtm(content, zipFile);
-      }
-      else
-      {
-        toXml(content, zipFile);
-      }
+        else if (name.endsWith(".htm") || name.endsWith(".html"))
+        {
+          toHtm(content, zipFile);
+        }
+        else
+        {
+          toXml(content, zipFile);
+        }
 
-      zipFile.closeEntry();
+        zipFile.closeEntry();
+      }
     }
-
-    zipFile.close();
   }
 }

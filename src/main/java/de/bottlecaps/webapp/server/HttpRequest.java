@@ -28,9 +28,9 @@ import de.bottlecaps.webapp.Request;
 @SuppressWarnings("all")
 public class HttpRequest implements Request
 {
-  private final static String MULTIPART_MIME_TYPE = "multipart/form-data; boundary=";
-  private final static byte[] CR_LF = new byte[]{'\r', '\n'};
-  private final static byte[] MINUS_MINUS = new byte[]{'-', '-'};
+  private static final String MULTIPART_MIME_TYPE = "multipart/form-data; boundary=";
+  private static final byte[] CR_LF = new byte[]{'\r', '\n'};
+  private static final byte[] MINUS_MINUS = new byte[]{'-', '-'};
 
   private HttpExchange httpExchange;
   private String contentTypeHeader;
