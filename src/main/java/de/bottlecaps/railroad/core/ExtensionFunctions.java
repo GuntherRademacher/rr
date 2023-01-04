@@ -558,13 +558,13 @@ public class ExtensionFunctions implements Initializer
           @Override
           public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException
           {
+            List<Item> result = new ArrayList<>();
             try
             {
               String url = arguments[1].head().getStringValue();
               URLConnection connection = new URL(url).openConnection();
               int responseCode = connection instanceof HttpURLConnection ? ((HttpURLConnection) connection).getResponseCode() : 200;
               String resp = "<" + RESPONSE + " xmlns=\"" + HTTPCLIENT_NAMESPACE + "\" status=\"" + responseCode + "\"/>";
-              List<Item> result = new ArrayList<>();
               result.add(parseXml(context, resp, "text/xml").iterateAxis(Axis.CHILD.getAxisNumber()).next());
               String contentType = connection.getContentType();
               if (isHtml(contentType) || isXml(contentType))
@@ -578,12 +578,12 @@ public class ExtensionFunctions implements Initializer
                 String value = ExtensionFunctions.toString((InputStream) connection.getContent(), connection.getContentEncoding());
                 result.add(new StringValue(value));
               }
-              return new SequenceExtent(result);
             }
             catch (IOException e)
             {
-              throw new RuntimeException(e);
+              result.add(new StringValue(e.getMessage()));
             }
+            return new SequenceExtent(result);
           }
         }
       );

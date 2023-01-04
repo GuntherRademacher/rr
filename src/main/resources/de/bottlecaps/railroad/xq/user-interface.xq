@@ -373,8 +373,8 @@ declare function ui:html($tab as xs:string,
                   return
                     <tr>
                       <td align="right">{$descriptions[$i]}</td>
-                      <td><input type="radio" name="spec" onclick="setUri(this.value)" value="http://www.w3.org/TR/{$spec}/"/></td>
-                      <td>http://www.w3.org/TR/{$spec}/</td>
+                      <td><input type="radio" name="spec" onclick="setUri(this.value)" value="https://www.w3.org/TR/{$spec}/"/></td>
+                      <td>https://www.w3.org/TR/{$spec}/</td>
                     </tr>
                 }
                 <tr>
@@ -1480,34 +1480,34 @@ declare function ui:welcome-tab() as element(xhtml:div)
     </p>
     <p>
       This is a tool for creating
-      <a target="_blank" href="http://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
+      <a target="_blank" href="https://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
       also known as railroad diagrams, from
-      <a target="_blank" href="http://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
+      <a target="_blank" href="https://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
       specified in
-      <a target="_blank" href="http://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
+      <a target="_blank" href="https://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
       been used for decades now, so the concept is well-known, and some tools for diagram generation are
       in existence. The features of this one are
       <ul>
-        <li>usage of the <a target="_blank" href="http://www.w3.org/">W3C</a>'s EBNF notation,</li>
+        <li>usage of the <a target="_blank" href="https://www.w3.org/">W3C</a>'s EBNF notation,</li>
         <li>web-scraping of grammars from W3C specifications,</li>
         <li>online editing of grammars,</li>
-        <li>diagram presentation in <a target="_blank" href="http://www.w3.org/Graphics/SVG/">SVG</a>,</li>
+        <li>diagram presentation in <a target="_blank" href="https://www.w3.org/Graphics/SVG/">SVG</a>,</li>
         <li>
           and it was completely written in web languages
-          (<a target="_blank" href="http://en.wikipedia.org/wiki/XQuery">XQuery</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/XHTML">XHTML</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
+          (<a target="_blank" href="https://en.wikipedia.org/wiki/XQuery">XQuery</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/XHTML">XHTML</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
         </li>
       </ul>
     </p>
     <b>Notation</b>
     <p>
       For the original description of the EBNF notation as it is used here, please refer to
-      "<a target="_blank" href="http://www.w3.org/TR/2010/REC-xquery-20101214/#EBNFNotation">A.1.1 Notation</a>"
-      in the <a target="_blank" href="http://www.w3.org/TR/2010/REC-xquery-20101214/">XQuery recommendation</a>. The
-      <a target="_blank" href="http://www.w3.org/TR/xml/">XML recommendation</a> contains a
-      similar section, "<a target="_blank" href="http://www.w3.org/TR/xml/#sec-notation">6 Notation</a>".
+      "<a target="_blank" href="https://www.w3.org/TR/2010/REC-xquery-20101214/#EBNFNotation">A.1.1 Notation</a>"
+      in the <a target="_blank" href="https://www.w3.org/TR/2010/REC-xquery-20101214/">XQuery recommendation</a>. The
+      <a target="_blank" href="https://www.w3.org/TR/xml/">XML recommendation</a> contains a
+      similar section, "<a target="_blank" href="https://www.w3.org/TR/xml/#sec-notation">6 Notation</a>".
       Below is a self-describing grammar for the EBNF notation.
     </p>
     <p><div class="grammar">{e:notation()}</div></p>
@@ -1710,6 +1710,12 @@ declare function ui:process($task, $color) as element()
       text {(webapp:parameter-values("text"), webapp:parameter-values("ebnf"))[1]}
     else if (ends-with(replace($uri, "[#?].*$", ""), replace(webapp:request-uri(), '/+', '/'))) then
       e:extract($uri, e:notation(), xs:integer(webapp:parameter-values("tz")))
+    else if (not(matches($uri, "^https?://.*"))) then
+      element xhtml:pre
+      {
+        concat("error: invalid URI: ", $uri),
+        '&#xA;Only http or https is supported.'
+      }
     else
       let $response := http-client:send-request((), $uri)
       return
