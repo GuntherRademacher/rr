@@ -1053,7 +1053,6 @@ declare function s:convert-to-svg($p as element(g:production), $page-width as xs
     <svg xmlns="http://www.w3.org/2000/svg"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          width="{$width + 1}" height="{$height + 1}">
-      <defs>{s:style($color, $spread)}</defs>
       {
         s:translate(1 - xs:integer($dimensions/@x1), 1 - xs:integer($dimensions/@y1), $rendered)
       }
@@ -1297,7 +1296,7 @@ declare function s:combine-path($node)
       if (not($node is $paths[last()])) then
         ()
       else
-        element svg:path
+        element path
         {
           $node/@class,
           attribute d

@@ -29,7 +29,15 @@ declare function m:rewrite($nodes, $format, $referenced-by as xs:boolean)
           else
             string(count($node/preceding::svg:svg) + 1)
         let $ebnf := string-join($node/following::xhtml:div[@class="ebnf"][1]/xhtml:code/*, "&#xA;")
-        let $img := concat("![", $name, "](data:image/svg+xml,", encode-for-uri(serialize($node, $m:serialization-options)), ")")
+          !replace(., "&#xA0;", " ")
+        let $svg :=
+          element {node-name($node)}
+          {
+            $node/@*,
+            $node/preceding::xhtml:head/svg:svg/svg:defs,
+            $node/node()
+          }
+        let $img := concat("![", $name, "](data:image/svg+xml,", encode-for-uri(serialize($svg, $m:serialization-options)), ")")
         return
           if (empty($node/following::svg:svg)) then
           (

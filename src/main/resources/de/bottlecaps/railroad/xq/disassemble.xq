@@ -5,7 +5,7 @@ declare namespace xhtml="http://www.w3.org/1999/xhtml";
 declare namespace xlink="http://www.w3.org/1999/xlink";
 declare namespace xsl="http://www.w3.org/1999/XSL/Transform";
 
-declare function d:file($name as xs:string, $content, $type)
+declare function d:file($name as xs:string, $type, $content)
 {
   element file
   {
@@ -37,7 +37,17 @@ declare function d:rewrite($nodes, $format, $hotspots as xs:boolean, $referenced
         let $img-name := concat("diagram/", $name, ".", $format)
         return
         (
-          d:file($img-name, $node, "xml"),
+          d:file
+          (
+            $img-name,
+            "xml",
+            element {node-name($node)}
+            {
+              $node/@*,
+              $node/preceding::xhtml:head/svg:svg/svg:defs,
+              $node/node()
+            }
+          ),
           let $map-name := concat($name, ".map")
           let $links := $node//svg:a
           let $map :=
@@ -106,7 +116,7 @@ declare function d:rewrite($nodes, $format, $hotspots as xs:boolean, $referenced
                       attribute alt {$target}
                     }</area>
                 }</map>
-              return d:file($map-path, $mapfile, "xhtml")
+              return d:file($map-path, "xhtml", $mapfile)
             ),
             if (not($referenced-by)) then
               ()
@@ -124,7 +134,7 @@ declare function d:rewrite($nodes, $format, $hotspots as xs:boolean, $referenced
                   let $referrer := data($a/@title)
                   return <li><a href="ref-{$referrer}.htm" title="{$referrer}">{$referrer}</a></li>
                 }</ul>
-              return d:file($referenced-by-path, $referenced-by, "xhtml")
+              return d:file($referenced-by-path, "xhtml", $referenced-by)
             )
           )
         )
@@ -158,7 +168,7 @@ declare function d:disassemble($input, $format)
     let $directive := $input//processing-instruction()[local-name() = "rr"]/tokenize(., "\s+")[.]
     let $hotspots := $directive = "hotspots"
     let $referenced-by := $directive = "referenced-by"
-    let $files := d:file("index.html", d:rewrite($input, $format, $hotspots, $referenced-by), "xml")
+    let $files := d:file("index.html", "xml", d:rewrite($input, $format, $hotspots, $referenced-by))
     for $file in $files/descendant-or-self::file
     order by lower-case($file/@name)
     return element file {$file/@*, d:unnest($file/node())}
