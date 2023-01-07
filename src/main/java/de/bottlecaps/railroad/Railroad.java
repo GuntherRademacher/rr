@@ -1,5 +1,6 @@
 package de.bottlecaps.railroad;
 
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -11,51 +12,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import de.bottlecaps.railroad.core.Download;
-import de.bottlecaps.railroad.core.Parser;
-import de.bottlecaps.railroad.core.ResourceModuleUriResolver;
-import de.bottlecaps.railroad.core.TextWidth;
-import de.bottlecaps.railroad.core.XhtmlToZip;
 import de.bottlecaps.railroad.webapp.RailroadServer;
-import net.sf.saxon.Configuration;
-import net.sf.saxon.lib.Feature;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.XQueryCompiler;
-import net.sf.saxon.s9api.XQueryEvaluator;
-import net.sf.saxon.s9api.XQueryExecutable;
-import net.sf.saxon.s9api.XdmAtomicValue;
-import net.sf.saxon.s9api.XdmEmptySequence;
-import net.sf.saxon.s9api.XdmNode;
 
 public class Railroad
 {
-  private static final String RR_URL = "https://bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
   private static final String COLOR_PATTERN = "#[0-9a-fA-F]{6}";
   private static final String INTEGER_PATTERN = "[0-9]+";
   private static final int DEFAULT_PORT = 8080;
 
   public static void main(String[] args) throws Exception
   {
+    RailroadGenerator generator = new RailroadGenerator();
+
     boolean input = false;
-    OutputStream output = System.out;
 
     int port = DEFAULT_PORT;
     boolean gui = false;
     int guiArgCount = 0;
-    boolean zip = false;
     boolean distZip = false;
-    boolean markdown = false;
-    boolean showEbnf = true;
-    boolean factoring = true;
-    boolean recursionElimination = true;
-    boolean inline = true;
-    boolean keep = true;
-    String color = null;
-    int spread = 0;
-    Integer padding = null;
-    Integer strokeWidth = null;
-    Integer width = null;
     Charset charset = null;
     boolean errors = false;
 
@@ -64,14 +38,14 @@ public class Railroad
       String arg = args[i];
       if (arg.equals("-suppressebnf"))
       {
-        showEbnf = false;
+        generator.setShowEbnf(false);
       }
       else if (arg.startsWith("-width:"))
       {
         String substring = arg.substring(7);
         if (substring.matches(INTEGER_PATTERN))
         {
-          width = Integer.parseInt(substring);
+          generator.setWidth(Integer.parseInt(substring));
         }
         else
         {
@@ -86,7 +60,8 @@ public class Railroad
         String substring = arg.substring(7);
         if (substring.matches(COLOR_PATTERN))
         {
-          color = substring;
+          Color color = Color.decode("0x" + substring.substring(1));
+          generator.setBaseColor(color);
         }
         else
         {
@@ -101,7 +76,7 @@ public class Railroad
         String substring = arg.substring(8);
         if (substring.matches(INTEGER_PATTERN))
         {
-          spread = Integer.parseInt(substring);
+          generator.setColorOffset(Integer.parseInt(substring));
         }
         else
         {
@@ -116,7 +91,7 @@ public class Railroad
         String substring = arg.substring(9);
         if (substring.matches(INTEGER_PATTERN))
         {
-          padding = Integer.parseInt(substring);
+          generator.setPadding(Integer.parseInt(substring));
         }
         else
         {
@@ -131,7 +106,7 @@ public class Railroad
         String substring = arg.substring(13);
         if (substring.matches(INTEGER_PATTERN))
         {
-          strokeWidth = Integer.parseInt(substring);
+          generator.setStrokeWidth(Integer.parseInt(substring));
         }
         else
         {
@@ -168,31 +143,31 @@ public class Railroad
       }
       else if (arg.equals("-png"))
       {
-        zip = true;
+        generator.setOutputType(RailroadGenerator.OutputType.HTML_PNG_ZIP);
       }
       else if (arg.equals("-md"))
       {
-        markdown = true;
+        generator.setOutputType(RailroadGenerator.OutputType.MARKDOWN_SVG);
       }
       else if (arg.startsWith("-out:"))
       {
-        output = new FileOutputStream(arg.substring(5));
+        generator.setOutput(new FileOutputStream(arg.substring(5)));
       }
       else if (arg.equals("-keeprecursion"))
       {
-        recursionElimination = false;
+        generator.setRecursionElimination(false);
       }
       else if (arg.equals("-nofactoring"))
       {
-        factoring = false;
+        generator.setFactoring(false);
       }
       else if (arg.equals("-noinline"))
       {
-        inline = false;
+        generator.setInlineLiterals(false);
       }
       else if (arg.equals("-noepsilon"))
       {
-        keep = false;
+        generator.setKeepEpsilon(false);
       }
       else if (arg.equals("-distZip"))
       {
@@ -260,86 +235,20 @@ public class Railroad
     else
     {
       byte[] bytes = read(System.in);
+      String grammar = decode(charset, bytes);
+      generator.generate(grammar);
+    }
+  }
 
-      String ebnf;
-      if (charset == null)
-      {
-        ebnf = decode(bytes);
-      }
-      else
-      {
-        ebnf = decode(bytes, 0, charset);
-      }
-
-      Configuration configuration = new Configuration();
-      configuration.registerExtensionFunction(new Parser.SaxonDefinition_Grammar());
-      Processor processor = new Processor(configuration);
-      processor.setConfigurationProperty(Feature.XSD_VERSION, "1.1");
-      new TextWidth.SaxonInitializer().initialize(processor.getUnderlyingConfiguration());
-
-      XQueryCompiler compiler = processor.newXQueryCompiler();
-      compiler.setModuleURIResolver(ResourceModuleUriResolver.instance);
-      String query =
-          "import module namespace i='de/bottlecaps/railroad/xq/basic-interface.xq';\n" +
-          "declare variable $ebnf external;\n" +
-          "declare variable $show-ebnf external;\n" +
-          "declare variable $recursion-elimination external;\n" +
-          "declare variable $factoring external;\n" +
-          "declare variable $inline external;\n" +
-          "declare variable $keep external;\n" +
-          "declare variable $width external;\n" +
-          "declare variable $color external;\n" +
-          "declare variable $spread external;\n" +
-          "i:ebnf-to-xhtml($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, '" + RR_URL + "')";
-      XQueryExecutable executable = compiler.compile(query);
-      XQueryEvaluator xqueryEvaluator = executable.load();
-
-      xqueryEvaluator.setExternalVariable(new QName("ebnf"), new XdmAtomicValue(ebnf));
-      xqueryEvaluator.setExternalVariable(new QName("show-ebnf"), new XdmAtomicValue(showEbnf));
-      xqueryEvaluator.setExternalVariable(new QName("recursion-elimination"), new XdmAtomicValue(recursionElimination));
-      xqueryEvaluator.setExternalVariable(new QName("factoring"), new XdmAtomicValue(factoring));
-      xqueryEvaluator.setExternalVariable(new QName("inline"), new XdmAtomicValue(inline));
-      xqueryEvaluator.setExternalVariable(new QName("keep"), new XdmAtomicValue(keep));
-      xqueryEvaluator.setExternalVariable(new QName("width"), width == null ? XdmEmptySequence.getInstance() : new XdmAtomicValue(width));
-      xqueryEvaluator.setExternalVariable(new QName("color"), color == null ? XdmEmptySequence.getInstance() : new XdmAtomicValue(color));
-      xqueryEvaluator.setExternalVariable(new QName("spread"), new XdmAtomicValue(spread));
-      xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "version"), new XdmAtomicValue(RailroadVersion.VERSION));
-      xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "java-version"), new XdmAtomicValue(Download.javaVersion()));
-      xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "date"), new XdmAtomicValue(RailroadVersion.DATE));
-      if (padding != null)
-        xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "padding"), new XdmAtomicValue(padding));
-      if (strokeWidth != null)
-        xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "stroke-width"), new XdmAtomicValue(strokeWidth));
-
-      if (zip)
-      {
-        XdmNode node = (XdmNode) xqueryEvaluator.iterator().next();
-        new XhtmlToZip().convert(node.getUnderlyingNode(), output);
-      }
-      else if (markdown)
-      {
-        Serializer serializer = processor.newSerializer(output);
-        serializer.setOutputProperty(Serializer.Property.METHOD, "text");
-        serializer.setOutputProperty(Serializer.Property.ENCODING, StandardCharsets.UTF_8.name());
-        XQueryEvaluator toMarkdown = compiler.compile(
-          "import module namespace m='de/bottlecaps/railroad/xq/xhtml-to-md.xq';\n" +
-          "declare variable $xhtml external;\n" +
-          "m:transform($xhtml)").load();
-        toMarkdown.setExternalVariable(new QName("xhtml"), (XdmNode) xqueryEvaluator.iterator().next());
-        toMarkdown.run(processor.newSerializer(output));
-      }
-      else
-      {
-        Serializer serializer = processor.newSerializer(output);
-        serializer.setOutputProperty(Serializer.Property.METHOD, "xhtml");
-        serializer.setOutputProperty(Serializer.Property.ENCODING, StandardCharsets.UTF_8.name());
-        serializer.setOutputProperty(Serializer.Property.OMIT_XML_DECLARATION, "yes");
-        serializer.setOutputProperty(Serializer.Property.VERSION, "1.0");
-        serializer.setOutputProperty(Serializer.Property.DOCTYPE_SYSTEM, "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd");
-        serializer.setOutputProperty(Serializer.Property.DOCTYPE_PUBLIC, "-//W3C//DTD XHTML 1.0 Transitional//EN");
-        serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
-        xqueryEvaluator.run(serializer);
-      }
+  private static String decode(Charset charset, byte[] bytes)
+  {
+    if (charset == null)
+    {
+      return decode(bytes);
+    }
+    else
+    {
+      return decode(bytes, 0, charset);
     }
   }
 
@@ -350,7 +259,7 @@ public class Railroad
     out.println();
     out.println("  version " + RailroadVersion.VERSION);
     out.println("  released " + RailroadVersion.DATE);
-    out.println("  from " + RR_URL);
+    out.println("  from " + RailroadGenerator.RR_URL);
     out.println();
     out.println("Usage: java " + jar + file + " {-suppressebnf|-keeprecursion|-nofactoring|-noinline|-noepsilon|-color:COLOR|-offset:OFFSET|-png|-md|-out:FILE|width:PIXELS}... GRAMMAR");
     out.println("    or java " + jar + file + " -gui [-port:PORT]");
