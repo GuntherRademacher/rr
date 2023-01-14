@@ -1258,14 +1258,14 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       }}
       var date = new Date();
       date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
-      var expires = "; expires=" + date.toGMTString() + "; path={replace(webapp:request-uri(), '/+', '/')}";
-      document.cookie = "options=" + optionsString + expires;
+      var attributes = "; SameSite=Lax; Expires=" + date.toGMTString() + "; path={replace(webapp:request-uri(), '/+', '/')}";
+      document.cookie = "options=" + optionsString + attributes;
       var color = document.getElementsByName("rgb")[0].value;
-      document.cookie = "color=" + color + expires;
+      document.cookie = "color=" + color + attributes;
       var width = document.getElementById("width").value;
-      document.cookie = "width=" + width + expires;
+      document.cookie = "width=" + width + attributes;
       var spread = document.getElementById("spread").value;
-      document.cookie = "spread=" + spread + expires;
+      document.cookie = "spread=" + spread + attributes;
     }}
 
     function rgbToHsl(r, g, b)
