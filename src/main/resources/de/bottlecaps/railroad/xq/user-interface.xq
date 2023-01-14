@@ -446,7 +446,7 @@ declare function ui:html($tab as xs:string,
                         width: 94%;
                       }}
                     </style>,
-                    s:svg($previewAst, true(), $s:page-width, $preview-color, 0, "/")[position() <= 5]
+                    s:svg($previewAst, true(), $s:page-width, $preview-color, 0, true(), "/")[position() <= 5]
                   )
                   let $palette-width := 18
                   let $previewEbnf := for $x at $i in $previewHtml where $x//@class = "ebnf" return $i
@@ -1833,6 +1833,7 @@ declare function ui:parse($ebnf as xs:string, $color as xs:string) as node()+
           xs:integer(webapp:parameter-values("width")),
           $color,
           xs:integer((webapp:parameter-values("spread"), "0")[.][1]),
+		  false(),
           (
             webapp:parameter-values("myUri0")[.],
             "https://www.bottlecaps.de/rr/ui"

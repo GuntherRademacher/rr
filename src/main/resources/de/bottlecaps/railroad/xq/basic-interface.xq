@@ -59,6 +59,7 @@ declare function i:ebnf-to-svg($ebnf as xs:string,
         ($width, $v:page-width)[1],
         ($color, $style:default-color)[1],
         $spread,
+		false(),
         $uri
       )
 };
