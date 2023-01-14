@@ -7,6 +7,7 @@ plugins {
     id 'war'
     id 'com.github.jk1.dependency-license-report' version '1.16'
     id 'maven-publish'
+    id 'signing'
 }
 
 defaultTasks 'build'
@@ -27,7 +28,7 @@ sourceSets {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -80,6 +81,11 @@ public class RailroadVersion
 
 compileJava {
     dependsOn generateSrc
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 task generateLicense {
@@ -157,15 +163,67 @@ task distZip(type:JavaExec) {
     }
 }
 
+ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
+
+void configureMetadata(MavenPublication mavenPublication) {
+    configure (mavenPublication) {
+        pom {
+            name = groupId + ':' + artifactId
+            description = 'Railroad diagram generator'
+            url = 'https://bottlecaps.de/rr/ui'
+            licenses {
+                license {
+                    name = 'Apache-2.0'
+                    url = 'https://opensource.org/licenses/Apache-2.0'
+                }
+            }
+            developers {
+                developer {
+                    name = 'Gunther Rademacher'
+                    email = 'grd@gmx.net'
+                    organization = 'Gunther Rademacher'
+                    organizationUrl = 'https://bottlecaps.de/'
+                }
+            }
+            scm {
+                connection = 'git@github.com:GuntherRademacher/rr.git'
+                developerConnection = 'git@github.com:GuntherRademacher/rr.git'
+                url = 'https://github.com/GuntherRademacher/rr'
+            }
+        }
+    }
+}
+
 publishing {
+    repositories {
+        maven {
+            def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
+            url = isReleaseVersion ? releaseRepo : snapshotRepo
+            credentials {
+                username = project.hasProperty('ossrhUsername') ? ossrhUsername : "Unknown user"
+                password = project.hasProperty('ossrhPassword') ? ossrhPassword : "Unknown password"
+            }
+        }
+    }
+
     publications {
         jar(MavenPublication) {
             artifactId = 'rr-lib'
             from components.java
+            configureMetadata delegate
         }
         war(MavenPublication) {
             artifactId = 'rr-webapp'
             from components.web
+            configureMetadata delegate
         }
     }
+}
+
+signing {
+    sign publishing.publications.jar
+}
+tasks.withType(Sign) {
+    onlyIf { isReleaseVersion }
 }
