@@ -1012,15 +1012,16 @@ declare function s:render-production($p as element(g:production)) as node()*
 };
 
 (:~
- : Return an SVG element for being include in the XHTML head, containing
+ : Return an SVG element for being included in the XHTML head, containing
  : the SVG defs for the graphics to come.
  :
  : @param $color the base color code.
+ : @param $spread the hue offset.
  : @return the svg element containing the defs.
  :)
-declare function s:defs($color as xs:string)
+declare function s:defs($color as xs:string, $spread as xs:integer)
 {
-  <svg xmlns="http://www.w3.org/2000/svg"><defs>{s:style($color, 0)}</defs></svg>
+  <svg xmlns="http://www.w3.org/2000/svg"><defs>{s:style($color, $spread)}</defs></svg>
 };
 
 (:~
@@ -1428,14 +1429,16 @@ declare function s:process-annotations($nodes as node()*) as node()*
  : Construct standard xhtml head entries.
  :
  : @param $color the color code.
+ : @param $spread the hue offset.
+ : @param $page-width the page width.
  : @return the list of standard xhtml head entries.
  :)
-declare function s:head($color as xs:string, $page-width as xs:integer?) as element()+
+declare function s:head($color as xs:string, $spread as xs:integer, $page-width as xs:integer?) as element()+
 {
   <meta http-equiv="Content-Type" content="application/xhtml+xml" xmlns="http://www.w3.org/1999/xhtml"/>,
   <meta name="generator" content="Railroad Diagram Generator {$s:version}" xmlns="http://www.w3.org/1999/xhtml"/>,
   style:css($color, $page-width),
-  s:defs($color)
+  s:defs($color, $spread)
 };
 
 (:~

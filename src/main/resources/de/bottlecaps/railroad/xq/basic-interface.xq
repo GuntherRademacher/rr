@@ -24,7 +24,7 @@ declare function i:ebnf-to-xhtml($ebnf as xs:string,
                                  $uri as xs:string?) as element(xhtml:html)
 {
   <html xmlns="http://www.w3.org/1999/xhtml">
-    <head>{v:head(($color, $style:default-color)[1], $width)}</head>
+    <head>{v:head(($color, $style:default-color)[1], $spread, $width)}</head>
     <body>{i:ebnf-to-svg($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, $uri)}</body>
   </html>
 };
@@ -59,7 +59,7 @@ declare function i:ebnf-to-svg($ebnf as xs:string,
         ($width, $v:page-width)[1],
         ($color, $style:default-color)[1],
         $spread,
-		false(),
+        false(),
         $uri
       )
 };

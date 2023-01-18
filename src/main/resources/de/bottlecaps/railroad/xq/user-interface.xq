@@ -210,6 +210,7 @@ declare function ui:html($tab as xs:string,
                                         $view-uri as xs:string?,
                                         $color as xs:string) as element()
 {
+  let $spread :=  xs:integer(ui:parameter-values("spread", "0"))
   let $width := xs:integer(ui:parameter-values("width", string($s:page-width)))
   return
   if (ui:is-IE-pre9()) then
@@ -222,13 +223,13 @@ declare function ui:html($tab as xs:string,
     {
       if (webapp:parameter-values("frame") = "diagram") then
       (
-        <head>{s:head($color, $width)}</head>,
+        <head>{s:head($color, $spread, $width)}</head>,
         <body>{$errorlog}</body>
       )
       else
       (
       <head>
-        {s:head($color, $width)}
+        {s:head($color, $spread, $width)}
         <link href="favicon.ico" rel="shortcut icon"/>,
         <title>Railroad Diagram Generator</title>,
       </head>,
@@ -1833,7 +1834,7 @@ declare function ui:parse($ebnf as xs:string, $color as xs:string) as node()+
           xs:integer(webapp:parameter-values("width")),
           $color,
           xs:integer((webapp:parameter-values("spread"), "0")[.][1]),
-		  false(),
+          false(),
           (
             webapp:parameter-values("myUri0")[.],
             "https://www.bottlecaps.de/rr/ui"
