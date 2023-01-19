@@ -223,6 +223,7 @@ publishing {
 
 signing {
     sign publishing.publications.jar
+    sign publishing.publications.war
 }
 tasks.withType(Sign) {
     onlyIf { isReleaseVersion }
