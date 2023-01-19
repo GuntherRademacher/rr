@@ -197,8 +197,8 @@ void configureMetadata(MavenPublication mavenPublication) {
 publishing {
     repositories {
         maven {
-            def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
+            def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
             url = isReleaseVersion ? releaseRepo : snapshotRepo
             credentials {
                 username = project.hasProperty('ossrhUsername') ? ossrhUsername : "Unknown user"
