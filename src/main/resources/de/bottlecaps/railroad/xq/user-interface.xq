@@ -12,7 +12,7 @@ import module namespace s="de/bottlecaps/railroad/xq/ast-to-svg.xq";
 import module namespace t="de/bottlecaps/railroad/xq/transform-ast.xq";
 import module namespace m="de/bottlecaps/railroad/xq/xhtml-to-md.xq";
 
-declare namespace p="Parser";
+declare namespace p="de/bottlecaps/railroad/core/Parser";
 declare namespace webapp="http://bottlecaps.de/webapp";
 declare namespace http-client="http://expath.org/ns/http-client";
 

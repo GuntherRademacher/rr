@@ -1,10 +1,9 @@
-// This file was generated on Tue Apr 14, 2020 20:20 (UTC+02) by REx v5.50 which is Copyright (c) 1979-2020 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Tue Jan 31, 2023 11:42 (UTC+01) by REx v5.57 which is Copyright (c) 1979-2023 by Gunther Rademacher <grd@gmx.net>
 // REx command line: -java -tree -saxon10 -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
 
 import java.util.Arrays;
-
 import java.util.ArrayList;
 import java.util.List;
 import net.sf.saxon.Configuration;
@@ -66,11 +65,11 @@ public class Parser
 
   public interface EventHandler
   {
-    void reset(CharSequence string);
-    void startNonterminal(String name, int begin);
-    void endNonterminal(String name, int end);
-    void terminal(String name, int begin, int end);
-    void whitespace(int begin, int end);
+    public void reset(CharSequence string);
+    public void startNonterminal(String name, int begin);
+    public void endNonterminal(String name, int end);
+    public void terminal(String name, int begin, int end);
+    public void whitespace(int begin, int end);
   }
 
   public static class TopDownTreeBuilder implements EventHandler
@@ -308,7 +307,7 @@ public class Parser
     abstract Sequence execute(XPathContext context, String input) throws XPathException;
 
     @Override
-    public StructuredQName getFunctionQName() {return new StructuredQName("p", "Parser", functionName());}
+    public StructuredQName getFunctionQName() {return new StructuredQName("p", "de/bottlecaps/railroad/core/Parser", functionName());}
     @Override
     public SequenceType[] getArgumentTypes() {return new SequenceType[] {SequenceType.SINGLE_STRING};}
     @Override
@@ -707,6 +706,7 @@ public class Parser
      && lk != 135427                // NCName Context '>>'
      && lk != 135429)               // StringLiteral Context '>>'
     {
+      whitespace();
       parse_Item();
       switch (l1)
       {
