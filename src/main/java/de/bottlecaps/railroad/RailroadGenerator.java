@@ -58,6 +58,7 @@ public class RailroadGenerator
 
   /**
    * @param grammar input grammar in W3C EBNF notation
+   * @throws Exception
    */
   public void generate(String grammar) throws Exception
   {
