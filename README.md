@@ -67,6 +67,7 @@ This project makes use of
   * [Saxon-HE][SAXON],
   * [TagSoup][TAGSOUP],
   * [Apache Batik][BATIK],
+  * [Ace Editor][ACE],
   * [Gradle][GRADLE], and
   * [Gradle-License-Report][GRADLE-LICENSE-REPORT].
 
@@ -83,7 +84,8 @@ The official website for RR is <https://bottlecaps.de/rr/ui>.
 [W3C-EBNF]: http://www.w3.org/TR/2010/REC-xquery-20101214/#EBNFNotation
 [CONVERT]: http://bottlecaps.de/convert/
 [SAXON]: http://www.saxonica.com/products/products.xml
-[TAGSOUP]: http://vrici.lojban.org/~cowan/XML/tagsoup/
+[TAGSOUP]: https://search.maven.org/artifact/org.ccil.cowan.tagsoup/tagsoup/1.2.1/jar
 [BATIK]: https://xmlgraphics.apache.org/batik/
+[ACE]: https://ace.c9.io/
 [GRADLE]: https://gradle.org/
 [GRADLE-LICENSE-REPORT]: https://github.com/jk1/Gradle-License-Report
