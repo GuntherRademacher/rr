@@ -1,5 +1,5 @@
-// This file was generated on Tue Jan 31, 2023 11:42 (UTC+01) by REx v5.57 which is Copyright (c) 1979-2023 by Gunther Rademacher <grd@gmx.net>
-// REx command line: -java -tree -saxon10 -name de.bottlecaps.railroad.core.Parser Parser.ebnf
+// This file was generated on Sun Feb 5, 2023 21:58 (UTC+01) by REx v5.57 which is Copyright (c) 1979-2023 by Gunther Rademacher <grd@gmx.net>
+// REx command line: -tree -a none -java -saxon -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
 
@@ -26,6 +26,7 @@ import net.sf.saxon.om.AttributeMap;
 import net.sf.saxon.om.EmptyAttributeMap;
 import net.sf.saxon.om.NamespaceMap;
 import net.sf.saxon.s9api.Location;
+import net.sf.saxon.str.StringView;
 
 public class Parser
 {
@@ -251,7 +252,7 @@ public class Parser
       {
         try
         {
-          builder.characters(input.subSequence(begin, end), LOCATION, 0);
+          builder.characters(StringView.of(input.subSequence(begin, end).toString()), LOCATION, 0);
         }
         catch (XPathException e)
         {
@@ -346,7 +347,7 @@ public class Parser
       attributes.add(new AttributeInfo(new NoNamespaceName("x"), anySimpleType, Integer.toString(pe.getExpected()), LOCATION, 0));
     }
     builder.startElement(new NoNamespaceName("ERROR"), AnyType.getInstance(), new SmallAttributeMap(attributes), NO_NAMESPACES, LOCATION, 0);
-    builder.characters(parser.getErrorMessage(pe), LOCATION, 0);
+    builder.characters(StringView.of(parser.getErrorMessage(pe)), LOCATION, 0);
     builder.endElement();
   }
 

@@ -2,6 +2,7 @@ package de.bottlecaps.railroad.webapp;
 
 import java.io.IOException;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -19,16 +20,18 @@ public class RailroadServlet extends HttpServlet
 
   @Override
   protected void doGet(HttpServletRequest request, HttpServletResponse response)
-      throws IOException
+      throws IOException, ServletException
   {
-    railroadWebApp.doRequest(new ServletRequest(request), new ServletResponse(response));
+    ServletRequest servletRequest = new ServletRequest(request);
+    railroadWebApp.doRequest(servletRequest, new ServletResponse(response));
   }
 
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
-      throws IOException
+      throws IOException, ServletException
   {
-    railroadWebApp.doRequest(new ServletRequest(request), new ServletResponse(response));
+    ServletRequest servletRequest = new ServletRequest(request);
+    railroadWebApp.doRequest(servletRequest, new ServletResponse(response));
   }
 
 }

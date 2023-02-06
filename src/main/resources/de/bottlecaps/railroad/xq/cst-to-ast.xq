@@ -8,6 +8,8 @@
  :)
 module namespace a="de/bottlecaps/railroad/xq/cst-to-ast.xq";
 
+import module namespace b="de/bottlecaps/railroad/xq/ast-to-ebnf.xq" at "ast-to-ebnf.xq";
+
 declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
 
 (:~
@@ -80,7 +82,7 @@ declare function a:ast($nodes as node()*) as node()*
           else
             element g:charClass {$ast}
     case element(ProcessingInstruction) return
-      processing-instruction {$node/NCName} {data($node/ProcessingInstructionContents)}
+      processing-instruction {$node/NCName} {b:re-indent(data($node/ProcessingInstructionContents), $b:t2 + 2)}
     case element(Link) return
       attribute xhref {$node/URL}
     case element(Primary) return

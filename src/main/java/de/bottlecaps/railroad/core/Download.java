@@ -1,5 +1,6 @@
 package de.bottlecaps.railroad.core;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -7,25 +8,31 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import de.bottlecaps.railroad.Railroad;
 import de.bottlecaps.railroad.RailroadVersion;
+import de.bottlecaps.webapp.Request;
 
 public class Download
 {
-  public static final String WAR_FILENAME = RailroadVersion.PROJECT_NAME + ".war";
   public static final String DOWNLOAD_FILENAME =
     RailroadVersion.PROJECT_NAME +
     "-" + RailroadVersion.VERSION +
     "-java" + javaVersion() +
     ".zip";
 
-  public static void distZip(OutputStream outputStream) throws IOException, FileNotFoundException
+  public static void distZip(
+      BiConsumer<PrintStream, String> usage,
+      Function<String, String> adaptLicense,
+      File warFile,
+      OutputStream outputStream) throws IOException, FileNotFoundException
   {
-    File warFile = warFile();
     try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream))
     {
       ZipEntry warEntry = new ZipEntry(warFile.getName());
@@ -41,8 +48,13 @@ public class Download
         for (ZipEntry entry; (entry = warStream.getNextEntry()) != null; )
           if (entry.getName().startsWith("LICENSE/"))
           {
-            zipOutputStream.putNextEntry(entry);
-            copy(warStream, zipOutputStream);
+            ZipEntry licenseEntry = new ZipEntry(entry.getName());
+            licenseEntry.setTime(warFile.lastModified());
+            zipOutputStream.putNextEntry(licenseEntry);
+
+            String licenseContent = toString(warStream);
+            licenseContent = adaptLicense.apply(licenseContent);
+            zipOutputStream.write(licenseContent.getBytes("UTF-8"));
           }
       }
 
@@ -51,7 +63,7 @@ public class Download
       zipOutputStream.putNextEntry(readmeEntry);
       try (PrintStream readMe = new PrintStream(zipOutputStream))
       {
-        Railroad.usage(readMe, warFile.getName());
+        usage.accept(readMe, warFile.getName());
       }
     }
   }
@@ -63,37 +75,67 @@ public class Download
       out.write(buffer, 0, length);
   }
 
+  public static String toString(InputStream in) throws IOException
+  {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] buffer = new byte[0x8000];
+    for (int length; (length = in.read(buffer)) > 0;)
+      out.write(buffer, 0, length);
+    return new String(out.toByteArray(), StandardCharsets.UTF_8);
+  }
+
+  private static Optional<File> warFile = null;
+
   public static File warFile()
   {
-    String catalinaBase = System.getProperty("catalina.base", System.getProperty("catalina.home"));
-    if (catalinaBase != null)
+    if (warFile == null)
     {
-      File file = null;
-      file = new File(
-          catalinaBase +
-          File.separator +
-          "webapps" +
-          File.separator +
-          WAR_FILENAME);
-      if (file.exists())
-        return file;
-    }
-
-    String javaCommand = System.getProperty("sun.java.command");
-    if (javaCommand != null)
-    {
-      for (String arg : javaCommand.split(" "))
+      warFile = Optional.empty();
+      String javaCommand = System.getProperty("sun.java.command");
+      if (javaCommand != null)
       {
-        String[] path = arg.split("[\\\\/]");
-        if (path[path.length - 1].equalsIgnoreCase(WAR_FILENAME))
+        for (String arg : javaCommand.split(" "))
         {
-          File file = new File(arg);
-          if (file.exists())
-            return file;
+          String[] path = arg.split("[\\\\/]");
+          if (path[path.length - 1].endsWith(".war"))
+          {
+            File file = new File(arg);
+            if (file.exists())
+            {
+              warFile = Optional.of(file);
+              break;
+            }
+          }
         }
       }
     }
-    return null;
+    return warFile.orElse(null);
+  }
+
+  public static File warFile(Request request)
+  {
+    if (warFile == null)
+    {
+      String catalinaBase = System.getProperty("catalina.base", System.getProperty("catalina.home"));
+      if (catalinaBase != null)
+      {
+        File file = null;
+        file = new File(
+            catalinaBase +
+            File.separator +
+            "webapps" +
+            File.separator +
+            request.getContextPath().substring(1) +
+            ".war");
+        if (file.exists())
+          warFile = Optional.of(file);
+      }
+
+      if (warFile == null)
+        return warFile();
+    }
+
+    return warFile.orElse(null);
   }
 
   public static int javaVersion()

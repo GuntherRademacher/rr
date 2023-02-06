@@ -4,23 +4,28 @@
  :)
 module namespace ui="de/bottlecaps/railroad/xq/user-interface.xq";
 
-import module namespace c="de/bottlecaps/railroad/xq/color.xq";
-import module namespace style="de/bottlecaps/railroad/xq/style.xq";
-import module namespace e="de/bottlecaps/railroad/xq/html-to-ebnf.xq";
-import module namespace a="de/bottlecaps/railroad/xq/cst-to-ast.xq";
-import module namespace s="de/bottlecaps/railroad/xq/ast-to-svg.xq";
-import module namespace t="de/bottlecaps/railroad/xq/transform-ast.xq";
-import module namespace m="de/bottlecaps/railroad/xq/xhtml-to-md.xq";
+import module namespace c="de/bottlecaps/railroad/xq/color.xq" at "color.xq";
+import module namespace style="de/bottlecaps/railroad/xq/style.xq" at "style.xq";
+import module namespace e="de/bottlecaps/railroad/xq/html-to-ebnf.xq" at "html-to-ebnf.xq";
+import module namespace a="de/bottlecaps/railroad/xq/cst-to-ast.xq" at "cst-to-ast.xq";
+import module namespace s="de/bottlecaps/railroad/xq/ast-to-svg.xq" at "ast-to-svg.xq";
+import module namespace t="de/bottlecaps/railroad/xq/transform-ast.xq" at "transform-ast.xq";
+import module namespace d="de/bottlecaps/railroad/xq/disassemble.xq" at "disassemble.xq";
 
 declare namespace p="de/bottlecaps/railroad/core/Parser";
-declare namespace webapp="http://bottlecaps.de/webapp";
+
 declare namespace http-client="http://expath.org/ns/http-client";
+declare namespace xf="de/bottlecaps/railroad/core/ExtensionFunctions";
 
 declare namespace math="http://www.w3.org/2005/xpath-functions/math";
 declare namespace xhtml="http://www.w3.org/1999/xhtml";
 declare namespace xlink="http://www.w3.org/1999/xlink";
 declare namespace svg="http://www.w3.org/2000/svg";
 declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
+
+declare variable $ui:request external;
+declare variable $ui:response external;
+declare variable $ui:output-options external;
 
 (: HTTP parameter names :)
 
@@ -61,11 +66,6 @@ declare variable $ui:VIEW := "VIEW";
  :)
 declare variable $ui:OPTIONS := "OPTIONS";
 
-(:~
- : The "ABOUT" tab name.
- :)
-declare variable $ui:ABOUT := "ABOUT";
-
 (: task names :)
 
 (:~
@@ -79,19 +79,9 @@ declare variable $ui:LOAD := "LOAD";
 declare variable $ui:SAVE := "SAVE";
 
 (:~
- : The "XHTML" task name.
+ : The "DOWNLOAD" task name.
  :)
-declare variable $ui:XHTML := "XHTML";
-
-(:~
- : The "XHTML" task name.
- :)
-declare variable $ui:MD := "MD";
-
-(:~
- : The "ZIP" task name.
- :)
-declare variable $ui:ZIP := "ZIP";
+declare variable $ui:DOWNLOAD := "DOWNLOAD";
 
 (: option names :)
 
@@ -129,19 +119,17 @@ declare variable $ui:KEEP := "keep";
  :)
 declare function ui:ui() as item()*
 {
-  let $request-parameters := webapp:parameter-names()
+  let $request-parameters := xf:parameter-names($ui:request)
   let $task :=
   (
-    webapp:parameter-values($ui:TASK),
+    xf:parameter-values($ui:request, $ui:TASK),
     $ui:VIEW[$request-parameters = ("text", "ebnf")],
     $ui:EDIT[$request-parameters = "uri"],
     $ui:WELCOME
   )[1]
   return if ($task = $ui:SAVE) then ui:save()
     else if ($task = $ui:LOAD) then ui:load(ui:color())
-    else if ($task = $ui:XHTML) then ui:download-xhtml()
-    else if ($task = $ui:MD) then ui:download-md()
-    else if ($task = $ui:ZIP) then ui:download-zip()
+    else if ($task = $ui:DOWNLOAD) then ui:download()
     else ui:process($task, ui:color())
 };
 
@@ -154,7 +142,7 @@ declare function ui:ui() as item()*
  :)
 declare function ui:is-IE-pre9()
 {
-  matches(webapp:user-agent(), "^[^\(]*\(compatible; MSIE [3-8]")
+  matches(xf:user-agent($ui:request), "^[^\(]*\(compatible; MSIE [3-8]")
 };
 
 (:~
@@ -167,7 +155,7 @@ declare function ui:is-IE-pre9()
  :)
 declare function ui:unsupported() as element(html)
 {
-  webapp:set-content-type("text/html"),
+  xf:set-serialization-parameter($ui:output-options, "media-type", "text/html"),
   <html>
     <head>
       <meta http-equiv="Content-Type" content="text/html"/>
@@ -195,11 +183,10 @@ declare function ui:unsupported() as element(html)
  : user content.
  :
  : @param $tab the id of the tab to be shown when the page is loaded.
- : @param $text the contents of the editor's textArea.
+ : @param $text the contents of the editor.
  : @param $modified the modification flag. Indicates whether a click
  : on the "VIEW" button requires an extra server request.
  : @param $errorlog the error log to be shown on the the "VIEW" tab, if any.
- : @param $view-uri the uri of the page tp be shown on the "VIEW" tab's iframe.
  : @param $color the color code.
  : @return an HTML or XHTML page, along with appropriate http header settings.
  :)
@@ -207,73 +194,93 @@ declare function ui:html($tab as xs:string,
                                         $text as xs:string?,
                                         $modified as xs:boolean,
                                         $errorlog as node()*,
-                                        $view-uri as xs:string?,
                                         $color as xs:string) as element()
 {
   let $spread :=  xs:integer(ui:parameter-values("spread", "0"))
   let $width := xs:integer(ui:parameter-values("width", string($s:page-width)))
+  let $download-options := ui:download-options()
   return
   if (ui:is-IE-pre9()) then
     ui:unsupported()
   else
   (
-    ui:xhtml(true()),
-    webapp:set-header("Cache-Control", "no-cache"),
+    ui:xhtml(),
+    xf:set-header($ui:response, "Cache-Control", "no-cache"),
     <html xmlns="http://www.w3.org/1999/xhtml">
     {
-      if (webapp:parameter-values("frame") = "diagram") then
+      if (xf:parameter-values($ui:request, "frame") = "diagram") then
       (
-        <head>{s:head($color, $spread, $width)}</head>,
+        <head>{s:head($color, $spread, $width, ())}</head>,
         <body>{$errorlog}</body>
       )
       else
       (
       <head>
-        {s:head($color, $spread, $width)}
-        <link href="favicon.ico" rel="shortcut icon"/>,
-        <title>Railroad Diagram Generator</title>,
+        {s:head($color, $spread, $width, style:ui-css($color))}
+        <link href="favicon.ico" rel="shortcut icon"/>
+        <title>Railroad Diagram Generator</title>
+        <script src="ace.js" type="text/javascript" charset="utf-8"/>
       </head>,
       <body onresize="resize()" onscroll="resize()" onload="onLoad()">
         {ui:logo()}
         <div id="download" class="download">
           <table border="0">
             <tr>
-              <td colspan="3"><b>Download diagram</b></td>
+              <td colspan="2" style="font-size: 14px;"><b>Download diagram</b></td>
             </tr>
             <tr>
-              <td><input type="radio" name="download-type" value="svg" checked="true"/></td>
-              <td style="font-size: 14px;">XHTML+SVG&#xA0;</td>
-              <td style="font-size: 9px; line-height: 11px;">
-                single XHTML page with<br/>
-                inline SVG graphics
+              <td class="download-option">
+                <input type="radio" name="text-format" value="xhtml" onchange="setDownloadOptions();">{
+                  if ($download-options = "xhtml") then attribute checked {true()} else ()
+                }</input>
+                XHTML&#160;
+              </td>
+              <td class="download-option">
+                <input type="radio" name="graphics-format" value="svg" onchange="setDownloadOptions();">{
+                  if ($download-options = "svg") then attribute checked {true()} else ()
+                }</input>
+                SVG&#160;
               </td>
             </tr>
             <tr>
-              <td><input type="radio" name="download-type" value="png"/></td>
-              <td style="font-size: 14px;">HTML+PNG&#xA0;</td>
-              <td style="font-size:9px; line-height: 11px;">
-                zip file containing HTML<br/>
-                and linked PNG images
+              <td class="download-option">
+                <input type="radio" name="text-format" value="html" onchange="setDownloadOptions();">{
+                  if ($download-options = "html") then attribute checked {true()} else ()
+                }</input>
+                HTML&#160;
+              </td>
+              <td class="download-option">
+                <input type="radio" name="graphics-format" value="png" onchange="setDownloadOptions();">{
+                  if ($download-options = "png") then attribute checked {true()} else ()
+                }</input>
+                PNG&#160;
               </td>
             </tr>
-<!--
             <tr>
-              <td><input type="radio" name="download-type" value="md"/></td>
-              <td style="font-size: 14px;">MD+SVG&#xA0;</td>
-              <td style="font-size:9px; line-height: 11px;">
-                single Markdown file with <br/>
-                inline SVG graphics
+              <td class="download-option">
+                <input type="radio" name="text-format" value="md" onchange="setDownloadOptions();">{
+                  if ($download-options = "md") then attribute checked {true()} else ()
+                }</input>
+                Markdown&#160;
+              </td>
+              <td class="download-option" title="Embed graphics with surrounding text&#10;in a single document. When unchecked,&#10;a ZIP will be created that contains&#10;text and  graphics in separate files&#10;">
+                <input type="checkbox" id="embedded" name="embedded" onchange="setDownloadOptions();">{
+                  if ($download-options = "embedded") then attribute checked {true()} else ()
+                }</input>
+                embedded
               </td>
             </tr>
--->
             <tr>
-              <td colspan="3"><small>&#xA;</small></td>
+              <td colspan="2" id="explain" style="font-size: 9px; line-height: 11px; height: 45px;"/>
             </tr>
             <tr>
-              <td colspan="3"><small>&#xA;</small></td>
+              <td colspan="2"><small>&#xA;</small></td>
             </tr>
             <tr>
-              <td colspan="3"><a class="button" href="javascript:downld()">Download</a></td>
+              <td colspan="2"><small>&#xA;</small></td>
+            </tr>
+            <tr>
+              <td colspan="2"><a class="button" href="javascript:downld()">Download</a></td>
             </tr>
           </table>
         </div>
@@ -282,15 +289,15 @@ declare function ui:html($tab as xs:string,
           <input type="hidden" name="{$ui:TASK}" id="{$ui:TASK}"/>
           <input type="hidden" name="frame" id="frame"/>
           <input type="hidden" name="{$ui:NAME}" id="{$ui:NAME}" value="{ui:name((), ())}"/>
-          <input type="hidden" name="time" id="time" value="{webapp:parameter-values("time")}"/>
+          <input type="hidden" name="time" id="time" value="{xf:parameter-values($ui:request, "time")}"/>
           <input type="hidden" name="color" value="{ui:color()}" style="width: 32px"/>
+          <input type="hidden" name="download-options" id="download-options" value=""/>
 
           <script type="text/javascript">var {$ui:WELCOME} = 0;</script>
           <script type="text/javascript">var {$ui:GET}     = 1;</script>
           <script type="text/javascript">var {$ui:EDIT}    = 2;</script>
           <script type="text/javascript">var {$ui:VIEW}    = 3;</script>
           <script type="text/javascript">var {$ui:OPTIONS} = 4;</script>
-          <script type="text/javascript">var {$ui:ABOUT}   = 5;</script>
 
           <ul id="tabs">
             <li><a name="tab" href="javascript:tab({$ui:WELCOME})">Welcome</a>&#32;</li
@@ -383,21 +390,22 @@ declare function ui:html($tab as xs:string,
                   <td><input id="other" type="radio" name="spec" onclick="setUri(this.value)" value="" checked=""/></td>
                   <td><small>enter URL below</small></td>
                 </tr>
-                <tr><td colspan="3" align="center">&#xA0;</td></tr>
+                <tr><td colspan="3" align="center">&#160;</td></tr>
                 <tr>
                   <td align="right">URL</td>
-                  <td>&#xA0;</td>
+                  <td>&#160;</td>
                   <td><input type="text" id="uri" name="uri" size="50" onclick="other.checked = true;"/></td>
                 </tr>
               </table>
             </div>
             <div name="div" style="overflow:hidden">
-              <textarea id="text" name="text" onchange="changeText();" style="width:100%" spellcheck="false">{$text}</textarea>
+              <textarea id="text" name="text" style="display: none">{$text}</textarea>
+              <div id="editor" name="editor"/>
               <input id="textChanged" name="textChanged" type="hidden" value="{$modified[.]}"/>
               <table>
                 <tr>
                   <td>
-                    <a class="button" href="javascript:clear()[0]">Clear</a>
+                    <a class="button" href="javascript:clear()[0]" style="margin-left: -3px">Clear</a>
                     &#32;
                     <a class="button" href="javascript:save()[0]">Save</a>
                   </td>
@@ -410,14 +418,12 @@ declare function ui:html($tab as xs:string,
                 </tr>
               </table>
             </div>
+
             <div name="div" style="overflow:hidden">
               <div id="errorlog" style="display:block;">{$errorlog}</div>
-              <iframe frameborder="0" name="diagram" id="diagram" width="100%" height="100%" onload="diagramLoaded();">
-              {
-                attribute src {$view-uri}[$view-uri != ""]
-              }
-              </iframe>
+              <iframe frameborder="0" name="diagram" id="diagram" width="100%" height="100%" onload="diagramLoaded();"/>
             </div>
+
             <div name="div">
               <div style="display:block; max-width: 768px; overflow: hidden;">
                 {
@@ -437,19 +443,39 @@ declare function ui:html($tab as xs:string,
                   let $previewHtml :=
                   (
                     <style type="text/css">
-                      #preview div
+                      #preview
                       {{
-                        display: block;
+                        color: {style:color-foreground($preview-color)};
+                        background: {style:color-background($preview-color)};
                       }}
-                      #preview div.ebnf, .ebnf code
+                      #preview div.ebnf
                       {{
+                        background: {style:color-bg-hilite($preview-color)};
                         padding-right: 0px;
-                        width: 94%;
+                        width: 95%;
                       }}
                     </style>,
                     s:svg($previewAst, true(), $s:page-width, $preview-color, 0, true(), "/")[position() <= 5]
                   )
-                  let $palette-width := 18
+                  let $palette :=
+                    <tr class="palette">
+                    {
+                      let $palette-width := 18
+                      let $angle := 360 div $palette-width
+                      for $i in (0 to $palette-width - 1)
+                      let $h := $angle * $i
+                      let $s := 1.0
+                      let $l := $c:default-lightness
+                      let $rgb := c:rgb(c:hsl-to-rgb($h, $s, $l))
+                      let $r-g-b := for $x in c:r-g-b($rgb) return string($x)
+                      let $h-s-l := for $x in c:rgb-to-hsl($rgb) return string(round($x * 100) div 100)
+                      let $title := concat($rgb, "  rgb(", $r-g-b[1], ",", $r-g-b[2], ",", $r-g-b[3], ")  hsl(", $h-s-l[1], ",", $h-s-l[2], ",", $h-s-l[3], ")")
+                      return
+                        <td style="background-color: {$rgb}" class="palette">
+                          <a href="javascript:setRgb('{$rgb}', true)" title="{$title}" class="palette"><small>&#160;</small></a>
+                       </td>
+                    }
+                    </tr>
                   let $previewEbnf := for $x at $i in $previewHtml where $x//@class = "ebnf" return $i
                   return
                     <table>
@@ -468,23 +494,22 @@ declare function ui:html($tab as xs:string,
                                       if ($c:debug) then
                                         <table>{
                                           for $rgb in (s:color-1($preview-color),
-                                                       c:relative-color($color, 1.0, 0.04),
                                                        s:color-nonterminal($preview-color, 0),
-                                                       c:relative-color($color, 1.0, 0.05),
                                                        s:color-regexp($preview-color, 0),
-                                                       c:relative-color($color, 1.0, 0.06),
                                                        style:color-background($preview-color),
-                                                       style:color-bg-hilite($preview-color)
-                                                       )
+                                                       style:color-bg-hilite($preview-color),
+                                                       style:color-foreground($preview-color)
+                                                      )
                                           let $r-g-b := for $x in c:r-g-b($rgb) return string($x)
                                           let $h-s-l := for $x in c:rgb-to-hsl($rgb) return string(round($x * 100) div 100)
                                           let $title := concat($rgb, "  rgb(", $r-g-b[1], ",", $r-g-b[2], ",", $r-g-b[3], ")")
-                                          return <tr><td style="background-color: {$rgb}" class="palette"><a title="{$title}">&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;</a></td><td>{$rgb}</td></tr>
+                                          return <tr><td style="background-color: {$rgb}" class="palette"><a title="{$title}">&#160;&#160;&#160;&#160;&#160;</a></td><td>{$rgb}</td></tr>
                                         }</table>
                                       else
                                         ()
                                     ))
                                   }"/>
+                                <input type="hidden" name="palette-html" id="palette-html" value="{ui:serialize($palette)}"/>
                                 {
                                   comment {$options},
                                   element input
@@ -501,14 +526,14 @@ declare function ui:html($tab as xs:string,
                               <td style="height: 1;" colspan="4"><b>Show EBNF</b></td>
                             </tr>
                             <tr>
-                              <td style="height: 1;">&#xA0;</td>
+                              <td style="height: 1;">&#160;</td>
                               <td style="height: 1;" colspan="4">
                                 The corresponding EBNF will be shown next to generated diagrams. If
                                 this option is unchecked, the EBNF display will be suppressed.
                               </td>
                             </tr>
                             <tr>
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                             </tr>
                             <tr>
                               <td align="right" style="height: 1;">
@@ -517,27 +542,9 @@ declare function ui:html($tab as xs:string,
                               <td/>
                               <td style="height: 1;"><b>Color</b></td>
                               <td colspan="2">
-                                {
-                                    <table cellpadding="0" cellspacing="0" class="palette">
-                                      <tr class="palette">
-                                      {
-                                        let $angle := 360 div $palette-width
-                                        for $i in (0 to $palette-width - 1)
-                                        let $h := $angle * $i
-                                        let $s := 1.0
-                                        let $l := $c:default-lightness
-                                        let $rgb := c:rgb(c:hsl-to-rgb($h, $s, $l))
-                                        let $r-g-b := for $x in c:r-g-b($rgb) return string($x)
-                                        let $h-s-l := for $x in c:rgb-to-hsl($rgb) return string(round($x * 100) div 100)
-                                        let $title := concat($rgb, "  rgb(", $r-g-b[1], ",", $r-g-b[2], ",", $r-g-b[3], ")  hsl(", $h-s-l[1], ",", $h-s-l[2], ",", $h-s-l[3], ")")
-                                        return
-                                          <td style="background-color: {$rgb}" class="palette">
-                                            <a href="javascript:setRgb('{$rgb}', true)" title="{$title}" class="palette"><small>&#160;</small></a>
-                                         </td>
-                                      }
-                                      </tr>
-                                    </table>
-                                }
+                              {
+                                <table id="palette" cellpadding="0" cellspacing="0" class="palette"/>
+                              }
                               </td>
                             </tr>
                             <tr>
@@ -595,7 +602,7 @@ declare function ui:html($tab as xs:string,
                               </td>
                             </tr>
                             <tr>
-                              <td colspan="5">&#xA0;</td>
+                              <td colspan="5">&#160;</td>
                             </tr>
 
                             <tr class="option-line">
@@ -606,7 +613,7 @@ declare function ui:html($tab as xs:string,
                               <td colspan="3"><b>Graphics width</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 When the graphics exceeds this width, attempts will
                                 be made to break it and start a continuation line.
@@ -622,7 +629,7 @@ declare function ui:html($tab as xs:string,
                               <td colspan="3"><b>Padding</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 The number of pixels between text and the surrounding box.
                               </td>
@@ -636,7 +643,7 @@ declare function ui:html($tab as xs:string,
                               <td colspan="3"><b>Stroke width</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 The width of lines and frames in pixels.
                               </td>
@@ -660,7 +667,7 @@ declare function ui:html($tab as xs:string,
                               <td colspan="4"><b>Direct recursion elimination</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 Unless disabled, direct recursion will be replaced by repetition. This
                                 applies to nonterminals, whose directly recursive references are
@@ -686,7 +693,7 @@ declare function ui:html($tab as xs:string,
                               <td colspan="4"><b>Factoring</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 When checked, left and right factoring will be applied to
                                 right-hand sides of all productions individually, in order
@@ -711,7 +718,7 @@ declare function ui:html($tab as xs:string,
                               <td colspan="4"><b>Inline literals</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 Replace nonterminal references by their definition, when they derive to a single
                                 string literal.
@@ -735,32 +742,30 @@ declare function ui:html($tab as xs:string,
                               <td colspan="4"><b>Keep epsilon nonterminals</b></td>
                             </tr>
                             <tr class="option-text">
-                              <td>&#xA0;</td>
+                              <td>&#160;</td>
                               <td colspan="4">
                                 Keep references to nonterminals, that derive to epsilon only. When unchecked,
                                 they will be removed.
                                </td>
                             </tr>
                           </table>
-
-                          <div style="display:none;">
-                            <input type="checkbox" name="options" id="sendoptions" value="sendoptions" checked="true"/>
-                          </div>
-
                         </td>
                         <td style="vertical-align: top">
                           <table>
                             <tr>
                               <td align="right" style="vertical-align: top; padding-top: 4px; padding-bottom: 10px;">
-                                <a href="javascript:reset(false)" class="button" onclick="reset(false)"
+                                <a href="javascript:" onclick="submit('{$ui:OPTIONS}', '')" class="button"
+                                   title="Apply changed settings. This is also done&#10;implicitly when leaving the options tab"><b>Apply</b></a>
+                                &#160;
+                                <a href="javascript:" onclick="reset(false)" class="button"
                                    title="Reset to previous values that are currently in effect"><b>Cancel</b></a>
-                                &#xA0;
-                                <a href="javascript:reset(true)" class="button" onclick="reset(true)"
+                                &#160;
+                                <a href="javascript:" onclick="reset(true)" class="button"
                                    title="Reset to default values"><b>Defaults</b></a>
                               </td>
                             </tr>
                             <tr>
-                              <td id="preview" style="vertical-align: top; border: 1px dotted; padding-left: 6px; padding-right: 6px; padding-bottom: 6px; width: 270px; height: 280px"/>
+                              <td id="preview" style="vertical-align: top; border: 1px dotted; padding-left: 6px; padding-right: 6px; height: 272px;"/>
                             </tr>
                           </table>
                         </td>
@@ -778,11 +783,11 @@ declare function ui:html($tab as xs:string,
           </div>
         </form>
         {
-          ui:spinner($color),
-          if ($tab = $ui:VIEW and not($view-uri != "") and $text != "" and not($errorlog != "")) then
+          if ($tab = $ui:VIEW and $text != "" and not($errorlog != "")) then
             ui:javascript($ui:EDIT, true())
           else
-            ui:javascript($tab, false())
+            ui:javascript($tab, false()),
+          ui:spinner($color)
         }
       </body>
       )
@@ -814,6 +819,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     var task = document.getElementById("task");
     var name = document.getElementById("name");
     var text = document.getElementById("text");
+    var editor = document.getElementById("editor");
     var other = document.getElementById("other");
     var view = document.getElementById("view");
     var textChanged = document.getElementById("textChanged");
@@ -829,6 +835,13 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     var download = document.getElementById("download");
     var active = {$tab};
     var css3colors = {{{$colors}}};
+    var aceEditor = ace.edit("editor");
+
+    aceEditor.setShowPrintMargin(false);
+    aceEditor.setValue(document.getElementById("text").value);
+    aceEditor.clearSelection();
+    aceEditor.moveCursorTo(0, 0);
+    aceEditor.getSession().on('change', function() {{changeText();}});
 
     function okToClear()
     {{
@@ -839,8 +852,8 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     {{
       if (okToClear())
       {{
-        text.value = "";
         name.value = "";
+        aceEditor.setValue("");
         changeText();
         return true;
       }}
@@ -867,7 +880,12 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         var height = "innerHeight" in window
                    ? window.innerHeight
                    : document.documentElement.offsetHeight;
-        text.style.height = (height - text.offsetTop - 55) + "px";
+        editor.style.height = (height - editor.offsetTop - 68) + "px";
+        var width = "innerWidth" in window
+                  ? window.innerWidth
+                  : document.documentElement.offsetWidth;
+        editor.style.width = (width - editor.offsetLeft - 10) + "px";
+        aceEditor.focus();
       }}
     }}
 
@@ -897,7 +915,6 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
                : t == {$ui:WELCOME} ? "{$ui:WELCOME}"
                : t == {$ui:GET} ? "{$ui:GET}"
                : t == {$ui:OPTIONS} ? "{$ui:OPTIONS}"
-               : t == {$ui:ABOUT} ? "{$ui:ABOUT}"
                : null;
       if (next != null &amp;&amp; uri.value != "")
       {{
@@ -927,12 +944,6 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         active = t;
         tabs[active].className = "active";
         divs[active].className = "active";
-
-        if (active == {$ui:ABOUT} &amp;&amp; frameset.src == "")
-        {{
-          frameset.src = "doc-frameset{ui:color-arg("?")}";
-        }}
-
         resize();
       }}
 
@@ -987,6 +998,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
 
     function changeText()
     {{
+      text.value = aceEditor.getSession().getValue();
       if (text.value == "")
       {{
         var diagramBody = diagram.contentDocument.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "body")[0];
@@ -997,6 +1009,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       {{
         textChanged.value = true;
       }}
+      aceEditor.focus();
       return true;
     }}
 
@@ -1021,6 +1034,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     {{
       document.forms.data.tz.value = new Date().getTimezoneOffset();
       tab({$tab});
+      setDownloadOptions();
       {if ($submit-on-load) then "resubmit" else "showResponseTime"}();
     }}
 
@@ -1058,6 +1072,54 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       return children;
     }}
 
+    function setDownloadOptions()
+    {{
+      var textFormat = document.querySelector('input[name="text-format"]:checked');
+      var textFormatValue = textFormat == null ? "xhtml" : textFormat.value;
+      var graphicsFormat = document.querySelector('input[name="graphics-format"]:checked');
+      var graphicsFormatValue = graphicsFormat == null ? "svg" : graphicsFormat.value;
+      var embedded = document.getElementById("embedded");
+      embedded.closest("td").style.display = textFormatValue === "none" ? "none" : "";
+      var explanation = "Current choice: download a ";
+      if (textFormatValue === "none" || ! embedded.checked)
+        explanation += "ZIP file containing ";
+      else
+        explanation += "single ";
+      if (textFormatValue !== "none")
+      {{
+        explanation += textFormatValue === "md" ? "Markdown" : textFormatValue.toUpperCase();
+        if (! embedded.checked)
+          explanation += " and";
+        else if (textFormatValue === "xhtml" &amp;&amp; graphicsFormatValue === "svg")
+          explanation += " file with embedded"
+        else
+          explanation += " file with";
+      }}
+      explanation += " " + graphicsFormatValue.toUpperCase() + " graphics";
+      if (textFormatValue === "none")
+      {{
+        explanation += " files.";
+      }}
+      else if (embedded.checked)
+      {{
+        if (textFormatValue !== "xhtml" || graphicsFormatValue !== "svg")
+          explanation += " embedded in data URLs";
+        if (textFormatValue === "md")
+          explanation += " (note: GitHub Markdown does not support data URLs)";
+        explanation += ".";
+      }}
+      else
+      {{
+        explanation += " in separate files.";
+      }}
+      document.getElementById("explain").innerHTML = explanation;
+      document.getElementById("download-options").value =
+        textFormatValue + "+" +
+        graphicsFormatValue +
+        (embedded.checked ? "+embedded" : "");
+      setCookies();
+    }}
+
     function downld()
     {{
       var type = "svg";
@@ -1071,30 +1133,13 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         }}
       }}
 
-      if (type === "svg")
-      {{
-        document.getElementById("xhtml").value = new XMLSerializer().serializeToString(diagram.contentDocument);
-        task.value = "{$ui:XHTML}";
-        document.forms.data.target = "";
-        document.forms.data.frame.value = "";
-        document.forms.data.submit();
-      }}
-      else if (type === "md")
-      {{
-        document.getElementById("xhtml").value = new XMLSerializer().serializeToString(diagram.contentDocument);
-        task.value = "{$ui:MD}";
-        document.forms.data.target = "";
-        document.forms.data.frame.value = "";
-        document.forms.data.submit();
-      }}
-      else if (type === "png")
-      {{
-        document.getElementById("xhtml").value = new XMLSerializer().serializeToString(diagram.contentDocument);
-        task.value = "{$ui:ZIP}";
-        document.forms.data.target = "_blank";
-        document.forms.data.frame.value = "diagram";
-        document.forms.data.submit();
-      }}
+      document.getElementById("xhtml").value = new XMLSerializer().serializeToString(diagram.contentDocument);
+      task.value = "{$ui:DOWNLOAD}";
+//    document.forms.data.target = "_blank";
+      document.forms.data.target = "";
+//    document.forms.data.frame.value = "diagram";
+      document.forms.data.frame.value = "";
+      document.forms.data.submit();
     }}
 
     function setColor()
@@ -1232,13 +1277,15 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     function preview()
     {{
       var color = colorCode(document.getElementsByName("color")[0].value);
-      var html = document.getElementById("preview-html-1").value;
+      var previewHtml = document.getElementById("preview-html-1").value;
       if (document.getElementById("{$ui:SHOWEBNF}").checked)
       {{
-        html += document.getElementById("preview-html-2").value;
+        previewHtml += document.getElementById("preview-html-2").value;
       }}
-      html += document.getElementById("preview-html-3").value;
-      document.getElementById("preview").innerHTML = replaceColors(html, colorToHsl(color));
+      previewHtml += document.getElementById("preview-html-3").value;
+      document.getElementById("preview").innerHTML = replaceColors(previewHtml, colorToHsl(color), false);
+      var paletteHtml = document.getElementById("palette-html").value;
+      document.getElementById("palette").innerHTML = replaceColors(paletteHtml, colorToHsl(color), true);
       setCookies();
     }}
 
@@ -1259,7 +1306,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       }}
       var date = new Date();
       date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
-      var attributes = "; SameSite=Lax; Expires=" + date.toGMTString() + "; path={replace(webapp:request-uri(), '/+', '/')}";
+      var attributes = "; SameSite=Lax; Expires=" + date.toGMTString() + "; path={replace(xf:request-uri($ui:request), '/+', '/')}";
       document.cookie = "options=" + optionsString + attributes;
       var color = document.getElementsByName("rgb")[0].value;
       document.cookie = "color=" + color + attributes;
@@ -1267,6 +1314,8 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       document.cookie = "width=" + width + attributes;
       var spread = document.getElementById("spread").value;
       document.cookie = "spread=" + spread + attributes;
+      var download = document.getElementById("download-options").value;
+      document.cookie = "download-options=" + download + attributes;
     }}
 
     function rgbToHsl(r, g, b)
@@ -1410,7 +1459,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       };
     }}
 
-    function replaceColors(string, newHsl)
+    function replaceColors(string, newHsl, keepHue)
     {{
       var newString = null;
       var parts = string.split(/#/);
@@ -1421,6 +1470,8 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
           newString = part;
         else if (! part.match(/^[0-9a-f]{{6}}/i))
           newString += "#" + part;
+        else if (keepHue)
+          newString += rgb(hslToRgb(colorToHsl("#" + part.substring(0, 6))[0], newHsl[1], newHsl[2])) + part.substring(6);
         else
           newString += convertColor("#" + part.substring(0, 6), newHsl) + part.substring(6);
       }}
@@ -1448,9 +1499,9 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         document.getElementById("{$ui:ELIMINATERECURSION}").checked = true;
         document.getElementById("{$ui:FACTORING}").checked = true;
         document.getElementById("{$ui:INLINE}").checked = true;
-        setRgb("{$style:default-color}", true);
         document.getElementById("width").value = {$s:page-width};
         document.getElementsByName("spread")[0].value = 0;
+        setRgb("{$style:default-color}", true);
       }}
       else
       {{
@@ -1458,9 +1509,9 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         document.getElementById("{$ui:ELIMINATERECURSION}").checked = {ui:options() = $ui:ELIMINATERECURSION};
         document.getElementById("{$ui:FACTORING}").checked = {ui:options() = $ui:FACTORING};
         document.getElementById("{$ui:INLINE}").checked = {ui:options() = $ui:INLINE};
-        setRgb(oldColor, true);
         document.getElementById("width").value = {ui:parameter-values("width", string($s:page-width))};
         document.getElementsByName("spread")[0].value = oldSpread;
+        setRgb(oldColor, true);
       }}
       setCookies();
       changeText();
@@ -1481,11 +1532,11 @@ declare function ui:welcome-tab() as element(xhtml:div)
     </p>
     <p>
       This is a tool for creating
-      <a target="_blank" href="https://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
+      <a target="_blank" href="http://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
       also known as railroad diagrams, from
-      <a target="_blank" href="https://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
+      <a target="_blank" href="http://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
       specified in
-      <a target="_blank" href="https://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
+      <a target="_blank" href="http://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
       been used for decades now, so the concept is well-known, and some tools for diagram generation are
       in existence. The features of this one are
       <ul>
@@ -1495,10 +1546,10 @@ declare function ui:welcome-tab() as element(xhtml:div)
         <li>diagram presentation in <a target="_blank" href="https://www.w3.org/Graphics/SVG/">SVG</a>,</li>
         <li>
           and it was completely written in web languages
-          (<a target="_blank" href="https://en.wikipedia.org/wiki/XQuery">XQuery</a>,
-          <a target="_blank" href="https://en.wikipedia.org/wiki/XHTML">XHTML</a>,
-          <a target="_blank" href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
-          <a target="_blank" href="https://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
+          (<a target="_blank" href="http://en.wikipedia.org/wiki/XQuery">XQuery</a>,
+          <a target="_blank" href="http://en.wikipedia.org/wiki/XHTML">XHTML</a>,
+          <a target="_blank" href="http://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
+          <a target="_blank" href="http://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
         </li>
       </ul>
     </p>
@@ -1577,47 +1628,47 @@ declare function ui:spinner($color as xs:string)
 
   return
   (
-    <div id="greyout" xmlns="http://www.w3.org/1999/xhtml" style="display:none" onclick="this.style.display = 'none'"/>,
-    <svg id="spinner" xmlns="http://www.w3.org/2000/svg" width="{$svg-width}" height="{$svg-height}" style="display:none">
-        {
-          for $sector in 1 to $sectors
-          let $a1 := (($sector - 1) * $angle + $stroke) div 180 * math:pi()
-          let $a2 := ($sector * $angle - $stroke) div 180 * math:pi()
-          let $s1 := math:sin($a1)
-          let $c1 := math:cos($a1)
-          let $s2 := math:sin($a2)
-          let $c2 := math:cos($a2)
-          let $x1 := $x0 + $r1 * $s1
-          let $y1 := $y0 - $r1 * $c1
-          let $x2 := $x0 + $r1 * $s2
-          let $y2 := $y0 - $r1 * $c2
-          let $x3 := $x0 + $r2 * $s2
-          let $y3 := $y0 - $r2 * $c2
-          let $x4 := $x0 + $r2 * $s1
-          let $y4 := $y0 - $r2 * $c1
-          return
-            <path id="sector"
-                  d="M {$x1},{$y1}
-                     A {$r1},{$r1} 0 0 1 {$x2},{$y2}
-                     L {$x3},{$y3}
-                     A {$r2},{$r2} 0 0 0 {$x4},{$y4}
-                     Z"
-              style="fill: {$sector-color[$sector]}; stroke: none;"/>
-        }
+    <div id="greyout" xmlns="http://www.w3.org/1999/xhtml" style="display: none;" onclick="this.style.display = 'none'"/>,
+    <svg id="spinner" xmlns="http://www.w3.org/2000/svg" width="{$svg-width}" height="{$svg-height}" style="display:none; z-index: 100001;">
+    {
+      for $sector in 1 to $sectors
+      let $a1 := (($sector - 1) * $angle + $stroke) div 180 * math:pi()
+      let $a2 := ($sector * $angle - $stroke) div 180 * math:pi()
+      let $s1 := math:sin($a1)
+      let $c1 := math:cos($a1)
+      let $s2 := math:sin($a2)
+      let $c2 := math:cos($a2)
+      let $x1 := $x0 + $r1 * $s1
+      let $y1 := $y0 - $r1 * $c1
+      let $x2 := $x0 + $r1 * $s2
+      let $y2 := $y0 - $r1 * $c2
+      let $x3 := $x0 + $r2 * $s2
+      let $y3 := $y0 - $r2 * $c2
+      let $x4 := $x0 + $r2 * $s1
+      let $y4 := $y0 - $r2 * $c1
+      return
+        <path id="sector"
+              d="M {$x1},{$y1}
+                 A {$r1},{$r1} 0 0 1 {$x2},{$y2}
+                 L {$x3},{$y3}
+                 A {$r2},{$r2} 0 0 0 {$x4},{$y4}
+                 Z"
+          style="fill: {$sector-color[$sector]}; stroke: none;"/>
+    }
     </svg>,
     <script type="text/javascript" xmlns="http://www.w3.org/1999/xhtml">
-      var colors = ["{string-join($sector-color, """, """)}"];
-      var sectors = document.getElementById("spinner").getElementsByTagNameNS("http://www.w3.org/2000/svg", "path");
-      var spinning = 0;
       var greyout = document.getElementById("greyout");
       var spinner = document.getElementById("spinner");
+      var sectors = spinner.getElementsByTagNameNS("http://www.w3.org/2000/svg", "path");
+      var colors = ["{string-join($sector-color, """, """)}"];
+      var spinning = 0;
 
       function resizeSpinner()
       {{
         if (spinning &gt; 0)
         {{
           var height = window.innerHeight;
-          greyout.setAttribute("style", "background-color: {c:relative-color($color, 1.0, 0.91)}; opacity: 0.7; height: " + height + "px; width: 100%; position:absolute; top: 0px; left: 0px;");
+          greyout.setAttribute("style", "background-color: {c:relative-color($color, 1.0, 0.91)}; opacity: 0.7; height: " + height + "px; width: 100%; position:absolute; top: 0px; left: 0px; z-index: 100001;");
 
           var left = Math.round(window.pageXOffset + (window.innerWidth - {$svg-width}) / 2);
           var top = Math.round(window.pageYOffset + (window.innerHeight - {$svg-height}) / 2);
@@ -1678,19 +1729,14 @@ declare function ui:spinner($color as xs:string)
  :)
 declare function ui:save() as xs:string
 {
-  webapp:set-content-type("text/plain"),
-  webapp:set-header("Content-Disposition", concat("attachment; filename=", ui:name("grammar", ".ebnf"))),
-  webapp:set-serialization-parameters
-  (
-    <output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-      <output:encoding value="UTF-8"/>
-      <output:indent value="no"/>
-      <output:method value="text"/>
-      <output:omit-xml-declaration value="yes"/>
-      <output:version value="1.0"/>
-    </output:serialization-parameters>
-  ),
-  webapp:parameter-values("text")
+  xf:set-serialization-parameter($ui:output-options, "media-type", "text/plain"),
+  xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("grammar", ".ebnf"))),
+  xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
+  xf:set-serialization-parameter($ui:output-options, "indent", "no"),
+  xf:set-serialization-parameter($ui:output-options, "method", "text"),
+  xf:set-serialization-parameter($ui:output-options, "omit-xml-declaration", "yes"),
+  xf:set-serialization-parameter($ui:output-options, "version", "1.0"),
+  xf:parameter-values($ui:request, "text")
 };
 
 (:~
@@ -1705,72 +1751,61 @@ declare function ui:save() as xs:string
  :)
 declare function ui:process($task, $color) as element()
 {
-  let $uri := webapp:parameter-values("uri")
+  let $uri := xf:parameter-values($ui:request, "uri")
   let $ebnf :=
     if (not($uri != "")) then
-      text {(webapp:parameter-values("text"), webapp:parameter-values("ebnf"))[1]}
-    else if (ends-with(replace($uri, "[#?].*$", ""), replace(webapp:request-uri(), '/+', '/'))) then
-      e:extract($uri, e:notation(), xs:integer(webapp:parameter-values("tz")))
+      text {(xf:parameter-values($ui:request, "text"), xf:parameter-values($ui:request, "ebnf"))[1]}
+    else if (ends-with(replace($uri, "[#?].*$", ""), replace(xf:request-uri($ui:request), '/+', '/'))) then
+      e:extract($uri, e:notation(), xs:integer(xf:parameter-values($ui:request, "tz")))
     else if (not(matches($uri, "^https?://.*"))) then
-      element xhtml:pre
-      {
+      <pre xmlns="http://www.w3.org/1999/xhtml">{
         concat("error: invalid URI: ", $uri),
         '&#xA;Only http or https is supported.'
-      }
+      }</pre>
     else
       let $response := http-client:send-request((), $uri)
       return
         if (not($response[1]/@status = 200)) then (: check HTTP OK status :)
         (
-          element xhtml:pre
-          {
+          <pre xmlns="http://www.w3.org/1999/xhtml">{
             "error: received response",
             data($response[1]/@status),
             "from HTTP GET request (URI:",
             concat($uri, "):")
-          },
+          }</pre>,
           for $r in $response
           return
           (
             <br/>,
-            element xhtml:code
-            {
+            <code xmlns="http://www.w3.org/1999/xhtml">{
               if ($r instance of node()) then
                 ui:serialize($r)
               else
                 $r
-            }
+            }</code>
           )
         )
         else if (not($response[2] instance of node())) then
-          element xhtml:pre
-          {
+          <pre xmlns="http://www.w3.org/1999/xhtml">{
             "error: there is no XML or HTML document at", $uri,
             '&#xA;For processing a plain grammar link, proceed to the "Edit Grammar" tab and use "Load".'
-          }
+          }</pre>
         else
-          e:extract($uri, $response[2], xs:integer(webapp:parameter-values("tz")))
-  let $precomputed :=
-    if ($ebnf/self::xhtml:pre) then
-      ()
-    else
-      ()
+          e:extract($uri, $response[2], xs:integer(xf:parameter-values($ui:request, "tz")))
   let $svg :=
     if ($ebnf/self::xhtml:pre) then
       $ebnf
-    else if (exists($precomputed)) then
-      ()
     else if ($task != $ui:VIEW) then
       ()
-    else if (not(webapp:parameter-values("frame") = "diagram")) then
+    else if (not(xf:parameter-values($ui:request, "frame") = "diagram")) then
       ()
     else
       ui:parse($ebnf, $color)
   return
     if ($svg/self::xhtml:pre) then
-      ui:html($ui:VIEW, $ebnf[not($ebnf/self::xhtml:pre)], false(), $svg, $precomputed, $color)
+      ui:html($ui:VIEW, $ebnf[not($ebnf/self::xhtml:pre)], false(), $svg, $color)
     else
-      ui:html($task[1], $ebnf, $ebnf != "" and empty($svg) and empty($precomputed), $svg, $precomputed, $color)
+      ui:html($task[1], $ebnf, $ebnf != "" and empty($svg), $svg, $color)
 };
 
 (:~
@@ -1784,16 +1819,16 @@ declare function ui:name($default-name, $forced-extension) as xs:string?
 {
   let $name :=
   (
-    let $uri := webapp:parameter-values("uri")
+    let $uri := xf:parameter-values($ui:request, "uri")
     where $uri != ""
     return replace($uri, "^.*/([^/]+)/?$", "$1"),
-    if (webapp:method-get()) then
+    if (xf:method-get($ui:request)) then
       ()
-    else if (webapp:part-names() = "file") then
-      tokenize(translate(webapp:part("file")/webapp:body/@webapp:filename, "\", "/"), "/")[last()]
+    else if (xf:part-names($ui:request) = "file") then
+      tokenize(translate(xf:part-filename($ui:request, "file"), "\", "/"), "/")[last()]
     else
       (),
-    webapp:parameter-values($ui:NAME),
+    xf:parameter-values($ui:request, $ui:NAME),
     $default-name
   )[. != ""][1]
   return
@@ -1827,25 +1862,24 @@ declare function ui:parse($ebnf as xs:string, $color as xs:string) as node()+
           $options = $ui:KEEP
         )
       return
-        s:svg                                 (: convert to AST, then to SVG :)
+        s:svg                                 (: convert to SVG :)
         (
           $grammar,
           $options = $ui:SHOWEBNF,
-          xs:integer(webapp:parameter-values("width")),
+          xs:integer(xf:parameter-values($ui:request, "width")),
           $color,
-          xs:integer((webapp:parameter-values("spread"), "0")[.][1]),
+          xs:integer((xf:parameter-values($ui:request, "spread"), "0")[.][1]),
           false(),
           (
-            webapp:parameter-values("myUri0")[.],
+            xf:parameter-values($ui:request, "myUri0")[.],
             "https://www.bottlecaps.de/rr/ui"
           )[1]
         )
-    else
-      element xhtml:pre                       (: report error :)
-      {
+    else                                      (: report error :)
+      <pre xmlns="http://www.w3.org/1999/xhtml">{
         "error:"[not($parse-tree instance of element(ERROR))],
         data($parse-tree)
-      }
+      }</pre>
 };
 
 (:~
@@ -1859,13 +1893,13 @@ declare function ui:parse($ebnf as xs:string, $color as xs:string) as node()+
  :)
 declare function ui:load($color as xs:string) as element(xhtml:html)
 {
-  let $filename := string(webapp:part("file")/webapp:body/@webapp:filename)
-  let $text := ui:decode-base64(webapp:binary-file($filename))
+  let $filename := string(xf:part-filename($ui:request, "file"))
+  let $text := xf:decode-base64(xf:binary-file($ui:request, $filename))
   return
     if (ui:has-valid-encoding($text)) then
-      ui:html($ui:EDIT, ui:strip-bom($text), true(), (), (), $color)
+      ui:html($ui:EDIT, ui:strip-bom($text), true(), (), $color)
     else
-      ui:html($ui:VIEW, (), false(), <xhtml:pre>error: unsupported encoding</xhtml:pre>, (), $color)
+      ui:html($ui:VIEW, (), false(), <pre xmlns="http://www.w3.org/1999/xhtml">error: unsupported encoding</pre>, $color)
 };
 
 (:~
@@ -1966,74 +2000,69 @@ declare function ui:color-arg($delimiter as xs:string) as xs:string?
  :
  : @return empty.
  :)
-declare function ui:xhtml($indent as xs:boolean) as item()*
+declare function ui:xhtml() as item()*
 {
-  webapp:set-content-type("application/xhtml+xml"),
-  webapp:set-serialization-parameters
-  (
-    <output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-      <output:encoding value="UTF-8"/>
-      <output:indent value="{if ($indent) then "yes" else "no"}"/>
-      <output:method value="xhtml"/>
-      <output:omit-xml-declaration value="yes"/>
-      <output:version value="1.0"/>
-      <output:doctype-system value="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
-      <output:doctype-public value="-//W3C//DTD XHTML 1.0 Transitional//EN"/>
-    </output:serialization-parameters>
-  )
+  xf:set-serialization-parameter($ui:output-options, "media-type", "application/xhtml+xml"),
+  xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
+  xf:set-serialization-parameter($ui:output-options, "indent", "yes"),
+  xf:set-serialization-parameter($ui:output-options, "method", "xhtml"),
+  xf:set-serialization-parameter($ui:output-options, "omit-xml-declaration", "yes"),
+  xf:set-serialization-parameter($ui:output-options, "version", "1.0"),
+  xf:set-serialization-parameter($ui:output-options, "doctype-system", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"),
+  xf:set-serialization-parameter($ui:output-options, "doctype-public", "-//W3C//DTD XHTML 1.0 Transitional//EN")
 };
 
 (:~
  : Download diagram as XHTML. The diagram is passed in HTTP parameter xhtml in
- : unparsed XHTML.
+ : unparsed XHTML. The format is specified by HTTP parameter download-options.
  :
- : @return the diagram as parsed XHTML.
+ : @return the diagram, rendered per download-options.
  :)
-declare function ui:download-xhtml() as xs:string
+declare function ui:download()
 {
-  webapp:set-serialization-parameters
-  (
-    <output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-      <output:encoding value="UTF-8"/>
-      <output:method value="text"/>
-    </output:serialization-parameters>
-  ),
-  webapp:set-content-type("application/xhtml+xml"),
-  webapp:set-header("Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".xhtml"))),
-  webapp:parameter-values("xhtml")
-};
-
-(:~
- : Download diagram as Markdown. The diagram is passed in HTTP parameter xhtml as
- : unparsed XHTML.
- :
- : @return the diagram as Markdown with inline SVG.
- :)
-declare function ui:download-md() as xs:string
-{
-  webapp:set-serialization-parameters
-  (
-    <output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-      <output:encoding value="UTF-8"/>
-      <output:method value="text"/>
-    </output:serialization-parameters>
-  ),
-  webapp:set-content-type("text/markdown; charset=UTF-8"),
-  webapp:set-header("Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".md"))),
-  m:transform(ui:parse-xml(webapp:parameter-values("xhtml")[1]))
-};
-
-(:~
- : Download zipped PNG diagrams. The diagram is passed in HTTP parameter xhtml in
- : unparsed XHTML.
- :
- : @return the zip file.
- :)
-declare function ui:download-zip()
-{
-  webapp:set-content-type("application/zip"),
-  webapp:set-header("Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".zip"))),
-  ui:xhtml-to-zip(webapp:parameter-values("xhtml")[1])
+  let $download-options := ui:download-options()
+  let $text-format := $download-options[. = ("xhtml", "html", "md")]
+  let $graphics-format := $download-options[. = ("svg", "png")]
+  let $embedded := $download-options = "embedded"
+  return
+    if (not($embedded)) then
+    (
+      xf:set-serialization-parameter($ui:output-options, "media-type", "application/zip"),
+      xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".zip"))),
+      xf:xhtml-to-zip(xf:parameter-values($ui:request, "xhtml")[1], $text-format, $graphics-format)
+    )
+    else if ($text-format = "xhtml" and $graphics-format = "svg") then
+    (
+      xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
+      xf:set-serialization-parameter($ui:output-options, "method", "text"),
+      xf:set-serialization-parameter($ui:output-options, "media-type", "application/xhtml+xml"),
+      xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".xhtml"))),
+      xf:parameter-values($ui:request, "xhtml")
+    )
+    else if ($text-format = "md") then
+    (
+      xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
+      xf:set-serialization-parameter($ui:output-options, "method", "text"),
+      xf:set-serialization-parameter($ui:output-options, "media-type", "text/markdown"),
+      xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".md"))),
+      d:disassemble(xf:parse-xml(xf:parameter-values($ui:request, "xhtml")[1]), $text-format, $graphics-format, $embedded)/files/file!string(.)
+    )
+    else if ($text-format = "html") then
+    (
+      xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
+      xf:set-serialization-parameter($ui:output-options, "method", "html"),
+      xf:set-serialization-parameter($ui:output-options, "media-type", "text/html"),
+      xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".html"))),
+      d:disassemble(xf:parse-xml(xf:parameter-values($ui:request, "xhtml")[1]), $text-format, $graphics-format, $embedded)/files/file/node()
+    )
+    else
+    (
+      xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
+      xf:set-serialization-parameter($ui:output-options, "method", "xhtml"),
+      xf:set-serialization-parameter($ui:output-options, "media-type", "application/xhtml+xml"),
+      xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".xhtml"))),
+      d:disassemble(xf:parse-xml(xf:parameter-values($ui:request, "xhtml")[1]), $text-format, $graphics-format, $embedded)/files/file/node()
+    )
 };
 
 (:~
@@ -2087,12 +2116,30 @@ declare function ui:serialize($nodes as node()*) as xs:string
 (:~
  : Get options parameter values from HTTP servlet request or cookie.
  :
- : @param $name the parameter name.
- : @return the parameter values.
+ : @return the options parameter value.
  :)
 declare function ui:options() as xs:string*
 {
   ui:parameter-values("options", ($ui:SHOWEBNF, $ui:ELIMINATERECURSION, $ui:FACTORING, $ui:INLINE, $ui:KEEP))
+};
+
+(:~
+ : Get download-options parameter values from HTTP servlet request or cookie.
+ :
+ : @param $name the parameter name.
+ : @return the parameter values.
+ :)
+declare function ui:download-options() as xs:string*
+{
+  let $download-options := ui:parameter-values("download-options", "embedded")
+  let $download-options :=
+    if (count($download-options) ne 1) then
+      $download-options
+    else
+      tokenize($download-options, "\+")
+  let $download-options := ($download-options, "svg"[not($download-options = ("svg", "png"))])
+  let $download-options := ($download-options, "xhtml"[not($download-options = ("xhtml", "html", "md"))])
+  return $download-options
 };
 
 (:~
@@ -2104,19 +2151,15 @@ declare function ui:options() as xs:string*
  :)
 declare function ui:parameter-values($name as xs:string, $default as xs:string*) as xs:string*
 {
-  let $values := webapp:parameter-values($name)
+  let $values := xf:parameter-values($ui:request, $name)
   return
     if (exists($values)) then
       $values
-(:
-    else if (not(webapp:method-get())) then
-      $default
-:)
     else
-      let $values := webapp:get-cookie($name)[1]
+      let $value := xf:get-cookie($ui:request, $name)
       return
-        if (exists($values)) then
-          tokenize($values, "\+")
+        if (exists($value)) then
+          tokenize($value, "\+")
         else
           $default
 };

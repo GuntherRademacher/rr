@@ -1,4 +1,4 @@
-/* generate: rex -java -tree -saxon10 -name de.bottlecaps.railroad.core.Parser Parser.ebnf */
+/* generate: rex -java -tree -saxon -name de.bottlecaps.railroad.Parser Parser.ebnf */
 
 Grammar               ::= ProcessingInstruction*
                           Production+

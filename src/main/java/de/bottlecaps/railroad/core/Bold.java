@@ -1,4 +1,4 @@
-// This file was generated on Tue Apr 14, 2020 20:20 (UTC+02) by REx v5.50 which is Copyright (c) 1979-2020 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Mon May 4, 2020 21:39 (UTC+02) by REx v5.50 which is Copyright (c) 1979-2020 by Gunther Rademacher <grd@gmx.net>
 // REx command line: Bold.java.compress
 
 package de.bottlecaps.railroad.core;
@@ -14,7 +14,7 @@ public class Bold
       int i3 = i2 >> 2;
       int i4 = i3 >> 3;
       int i5 = i4 >> 3;
-      return LOW[(i0 & 1) + LOW[(i1 & 7) + LOW[(i2 & 3) + LOW[(i3 & 7) + LOW[(i4 & 7) + LOW[(i5 & 3) + LOW[i5 >> 2]]]]]]];  
+      return LOW[(i0 & 1) + LOW[(i1 & 7) + LOW[(i2 & 3) + LOW[(i3 & 7) + LOW[(i4 & 7) + LOW[(i5 & 3) + LOW[i5 >> 2]]]]]]];
     }
     else
     {

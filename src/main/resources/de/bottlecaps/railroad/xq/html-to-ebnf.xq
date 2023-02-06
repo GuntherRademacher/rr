@@ -150,14 +150,18 @@ declare function e:extract-definitions($html as node()) as element(definition)*
         else
           element definition {element lhs {"<?TOKENS?>"}}
     else (: rr format :)
-      for $pre in $html//xhtml:pre
-      where contains($pre, "::=")
+      for $rule in
+        (
+          $html//xhtml:pre,
+          $html//*:div[@class = "ebnf"]!replace(., "(&#xA;)[ &#x9;]+", "$1")
+        )[contains(., "::=")]
+      let $rule := replace($rule, "&#xA0;", " ")
       return
         element definition
         {
-          element lhs {substring-before($pre, "::=")},
+          element lhs {substring-before($rule, "::=")!replace(., "^\s+", "")},
           "::=",
-          element rhs {substring-after($pre, "::=")}
+          element rhs {substring-after($rule, "::=")!replace(., "\s+$", "")}
         }
 };
 

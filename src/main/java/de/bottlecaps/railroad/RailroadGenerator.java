@@ -1,81 +1,50 @@
 package de.bottlecaps.railroad;
 
+import static de.bottlecaps.xml.XQueryProcessor.defaultXQueryProcessor;
+
 import java.awt.Color;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import de.bottlecaps.railroad.core.Download;
-import de.bottlecaps.railroad.core.Parser;
-import de.bottlecaps.railroad.core.ResourceModuleUriResolver;
-import de.bottlecaps.railroad.core.TextWidth;
+import de.bottlecaps.railroad.core.OutputOptions;
 import de.bottlecaps.railroad.core.XhtmlToZip;
-import net.sf.saxon.Configuration;
-import net.sf.saxon.lib.Feature;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.XQueryCompiler;
-import net.sf.saxon.s9api.XQueryEvaluator;
-import net.sf.saxon.s9api.XQueryExecutable;
-import net.sf.saxon.s9api.XdmAtomicValue;
-import net.sf.saxon.s9api.XdmEmptySequence;
-import net.sf.saxon.s9api.XdmNode;
+import de.bottlecaps.xml.XQueryProcessor.Result;
 
 public class RailroadGenerator
 {
   public static final String RR_URL = "https://bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
 
-  public enum OutputType
+  public enum TextFormat
   {
-    XHTML_SVG
-      {
-        @Override
-        protected void produce(Processor processor, XQueryCompiler compiler, XQueryEvaluator xqueryEvaluator, OutputStream output) throws Exception
-        {
-          Serializer serializer = processor.newSerializer(output);
-          serializer.setOutputProperty(Serializer.Property.METHOD, "xhtml");
-          serializer.setOutputProperty(Serializer.Property.ENCODING, StandardCharsets.UTF_8.name());
-          serializer.setOutputProperty(Serializer.Property.OMIT_XML_DECLARATION, "yes");
-          serializer.setOutputProperty(Serializer.Property.VERSION, "1.0");
-          serializer.setOutputProperty(Serializer.Property.DOCTYPE_SYSTEM, "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd");
-          serializer.setOutputProperty(Serializer.Property.DOCTYPE_PUBLIC, "-//W3C//DTD XHTML 1.0 Transitional//EN");
-          serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
-          xqueryEvaluator.run(serializer);
-        }
-      },
+    XHTML("xhtml", OutputOptions.XHTML),
+    HTML("html", OutputOptions.HTML),
+    MARKDOWN("md", OutputOptions.TEXT);
 
-    HTML_PNG_ZIP
-      {
-        @Override
-        protected void produce(Processor processor, XQueryCompiler compiler, XQueryEvaluator xqueryEvaluator, OutputStream output) throws Exception
-        {
-          XdmNode node = (XdmNode) xqueryEvaluator.iterator().next();
-          new XhtmlToZip().convert(node.getUnderlyingNode(), output);
-        }
-      },
+    private final String value;
+    private final OutputOptions outputOptions;
 
-    MARKDOWN_SVG
-      {
-        @Override
-        protected void produce(Processor processor, XQueryCompiler compiler, XQueryEvaluator xqueryEvaluator, OutputStream output) throws Exception
-        {
-          Serializer serializer = processor.newSerializer(output);
-          serializer.setOutputProperty(Serializer.Property.METHOD, "text");
-          serializer.setOutputProperty(Serializer.Property.ENCODING, StandardCharsets.UTF_8.name());
-          XQueryEvaluator toMarkdown = compiler.compile(
-            "import module namespace m='de/bottlecaps/railroad/xq/xhtml-to-md.xq';\n" +
-            "declare variable $xhtml external;\n" +
-            "m:transform($xhtml)").load();
-          toMarkdown.setExternalVariable(new QName("xhtml"), (XdmNode) xqueryEvaluator.iterator().next());
-          toMarkdown.run(processor.newSerializer(output));
-        }
-      };
+    private TextFormat(String value, OutputOptions outputOptions)
+    {
+      this.value = value;
+      this.outputOptions = outputOptions;
+    }
+  };
 
-    protected abstract void produce(Processor processor, XQueryCompiler compiler, XQueryEvaluator xqueryEvaluator, OutputStream output) throws Exception;
-  }
+  public enum GraphicsFormat
+  {
+    SVG,
+    PNG,
+  };
 
   private OutputStream output = System.out;
-  private OutputType outputType = OutputType.XHTML_SVG;
+  private TextFormat textFormat = TextFormat.XHTML;
+  private GraphicsFormat graphicsFormat = GraphicsFormat.SVG;
+  private boolean embedded = true;
   private boolean showEbnf = true;
   private boolean factoring = true;
   private boolean recursionElimination = true;
@@ -97,16 +66,10 @@ public class RailroadGenerator
     if (grammar.isEmpty())
       throw new IllegalArgumentException("grammar cannot be empty");
 
-    Configuration configuration = new Configuration();
-    configuration.registerExtensionFunction(new Parser.SaxonDefinition_Grammar());
-    Processor processor = new Processor(configuration);
-    processor.setConfigurationProperty(Feature.XSD_VERSION, "1.1");
-    new TextWidth.SaxonInitializer().initialize(processor.getUnderlyingConfiguration());
-
-    XQueryCompiler compiler = processor.newXQueryCompiler();
-    compiler.setModuleURIResolver(ResourceModuleUriResolver.instance);
+    String moduleNamespace = "de/bottlecaps/railroad/xq/basic-interface.xq";
+    URL moduleURL = Thread.currentThread().getContextClassLoader().getResource(moduleNamespace);
     String query =
-        "import module namespace i='de/bottlecaps/railroad/xq/basic-interface.xq';\n" +
+        "import module namespace i='"+ moduleNamespace + "' at '" + moduleURL + "';\n" +
         "declare variable $ebnf external;\n" +
         "declare variable $show-ebnf external;\n" +
         "declare variable $recursion-elimination external;\n" +
@@ -117,27 +80,57 @@ public class RailroadGenerator
         "declare variable $color external;\n" +
         "declare variable $spread external;\n" +
         "i:ebnf-to-xhtml($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, '" + RR_URL + "')";
-    XQueryExecutable executable = compiler.compile(query);
-    XQueryEvaluator xqueryEvaluator = executable.load();
 
-    xqueryEvaluator.setExternalVariable(new QName("ebnf"), new XdmAtomicValue(grammar));
-    xqueryEvaluator.setExternalVariable(new QName("show-ebnf"), new XdmAtomicValue(showEbnf));
-    xqueryEvaluator.setExternalVariable(new QName("recursion-elimination"), new XdmAtomicValue(recursionElimination));
-    xqueryEvaluator.setExternalVariable(new QName("factoring"), new XdmAtomicValue(factoring));
-    xqueryEvaluator.setExternalVariable(new QName("inline"), new XdmAtomicValue(inlineLiterals));
-    xqueryEvaluator.setExternalVariable(new QName("keep"), new XdmAtomicValue(keepEpsilon));
-    xqueryEvaluator.setExternalVariable(new QName("width"), width == null ? XdmEmptySequence.getInstance() : new XdmAtomicValue(width));
-    xqueryEvaluator.setExternalVariable(new QName("color"), baseColor == null ? XdmEmptySequence.getInstance() : new XdmAtomicValue(toHexString(baseColor)));
-    xqueryEvaluator.setExternalVariable(new QName("spread"), new XdmAtomicValue(colorOffset));
-    xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "version"), new XdmAtomicValue(RailroadVersion.VERSION));
-    xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "java-version"), new XdmAtomicValue(Download.javaVersion()));
-    xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "date"), new XdmAtomicValue(RailroadVersion.DATE));
+    Map<String, Object> externalVars = new HashMap<>();
+    externalVars.put("ebnf", grammar);
+    externalVars.put("show-ebnf", showEbnf);
+    externalVars.put("recursion-elimination", recursionElimination);
+    externalVars.put("factoring", factoring);
+    externalVars.put("inline", inlineLiterals);
+    externalVars.put("keep", keepEpsilon);
+    externalVars.put("width", width);
+    externalVars.put("color", baseColor == null ? null : toHexString(baseColor));
+    externalVars.put("spread", colorOffset);
+    externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}version", RailroadVersion.VERSION);
+    externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}java-version", Download.javaVersion());
+    externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}date", RailroadVersion.DATE);
     if (padding != null)
-      xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "padding"), new XdmAtomicValue(padding));
+      externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}padding", padding);
     if (strokeWidth != null)
-      xqueryEvaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "stroke-width"), new XdmAtomicValue(strokeWidth));
+      externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}stroke-width", strokeWidth);
 
-    outputType.produce(processor, compiler, xqueryEvaluator, output);
+    Result xhtml = defaultXQueryProcessor()
+      .compile(query)
+      .evaluate(externalVars);
+
+    if (! embedded)
+    {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      xhtml.serialize(baos, OutputOptions.XML.value());
+      new XhtmlToZip().convert(baos.toString(StandardCharsets.UTF_8), textFormat.value, graphicsFormat.name().toLowerCase(), output);
+    }
+    else if (textFormat == TextFormat.XHTML && graphicsFormat == GraphicsFormat.SVG)
+    {
+      xhtml.serialize(output, OutputOptions.XHTML.value());
+    }
+    else
+    {
+      String disassembleNamespace = "de/bottlecaps/railroad/xq/disassemble.xq";
+      URL disassembleURL = Thread.currentThread().getContextClassLoader().getResource(disassembleNamespace);
+      String toMarkdown =
+          "import module namespace d='" + disassembleNamespace + "' at '" + disassembleURL + "';\n" +
+          "declare variable $xhtml external;\n" +
+          "declare variable $text-format external;\n" +
+          "declare variable $img-format external;\n" +
+          "d:disassemble($xhtml, $text-format, $img-format, true())/files/file/node()";
+      defaultXQueryProcessor()
+        .compile(toMarkdown)
+        .evaluate(Map.of(
+            "xhtml", xhtml,
+            "text-format", textFormat.value,
+            "img-format", graphicsFormat.name().toLowerCase()))
+        .serialize(output, textFormat.outputOptions.value());
+    }
   }
 
   private String toHexString(Color color)
@@ -154,14 +147,34 @@ public class RailroadGenerator
   }
 
   /**
-   * @param outputType type of output file, defaults to {@link OutputType#XHTML_SVG}
+   * @param textFormat format of text output, defaults to {@link TextFormat#XHTML}
    */
-  public void setOutputType(OutputType outputType)
+  public void setTextFormat(TextFormat textFormat)
   {
-    if (outputType == null)
-      throw new IllegalArgumentException("outputType cannot be null");
+    if (textFormat == null)
+      throw new IllegalArgumentException("textFormat cannot be null");
 
-    this.outputType = outputType;
+    this.textFormat = textFormat;
+  }
+
+  /**
+   * @param graphicsFormat format of graphics output, defaults to {@link GraphicsFormat#SVG}
+   */
+  public void setGraphicsFormat(GraphicsFormat graphicsFormat)
+  {
+    if (graphicsFormat == null)
+      throw new IllegalArgumentException("graphicsFormat cannot be null");
+
+    this.graphicsFormat = graphicsFormat;
+  }
+
+  /**
+   * @param embedded whether to embed graphics in text, in a single output file. Defaults to {@code true}.
+   * When {@code false}, the output will be a zip with text output and graphics in separate files.
+   */
+  public void setEmbedded(boolean embedded)
+  {
+    this.embedded = embedded;
   }
 
   /**
@@ -237,7 +250,7 @@ public class RailroadGenerator
   }
 
   /**
-   * @param width if exceeded, generator tries to break graphics into multiple lines; defaults to {@code 922}
+   * @param width if exceeded, generator tries to break graphics into multiple lines; defaults to {@code 992}
    */
   public void setWidth(int width)
   {

@@ -1,61 +1,44 @@
 package de.bottlecaps.railroad.core;
 
+import static de.bottlecaps.xml.XQueryProcessor.defaultXQueryProcessor;
+
 import java.io.OutputStream;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URL;
+import java.util.Collections;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.xml.transform.Source;
-
-import net.sf.saxon.s9api.Axis;
-import net.sf.saxon.s9api.DocumentBuilder;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SaxonApiException;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.XQueryCompiler;
-import net.sf.saxon.s9api.XQueryEvaluator;
-import net.sf.saxon.s9api.XQueryExecutable;
-import net.sf.saxon.s9api.XdmAtomicValue;
-import net.sf.saxon.s9api.XdmNode;
-import net.sf.saxon.s9api.XdmNodeKind;
-import net.sf.saxon.s9api.XdmSequenceIterator;
-import net.sf.saxon.s9api.XdmValue;
+import de.bottlecaps.xml.XQueryProcessor.Plan;
+import de.bottlecaps.xml.XQueryProcessor.Result;
 
 public class XhtmlToZip
 {
-  private boolean verbose = false;
-  private static Processor processor = null;
-  private static XQueryExecutable executable = null;
-
-  private PngTranscoder pngTranscoder;
+  private static Plan transformToFiles = null;
+  private static Plan getSingleFileName = null;
+  private static Plan getSingleFileContent = null;
 
   static
   {
-    processor = new Processor(false);
     try
     {
-      String query =
-          "import module namespace d='de/bottlecaps/railroad/xq/disassemble.xq';\n" +
+      String moduleNamespace = "de/bottlecaps/railroad/xq/disassemble.xq";
+      URL moduleURL = XhtmlToZip.class.getClassLoader().getResource(moduleNamespace);
+      transformToFiles = defaultXQueryProcessor().compile(
+          "import module namespace d='" + moduleNamespace + "' at '" + moduleURL + "';\n" +
           "declare variable $input external;\n" +
-          "declare variable $format external;\n" +
-          "d:disassemble($input, $format)";
-      XQueryCompiler xqueryCompiler = processor.newXQueryCompiler();
-      xqueryCompiler.setModuleURIResolver(ResourceModuleUriResolver.instance);
-      executable = xqueryCompiler.compile(query);
-    }
-    catch (SaxonApiException e)
-    {
-      throw new RuntimeException(e.getMessage(), e);
-    }
-  }
-
-  public XhtmlToZip()
-  {
-    try
-    {
-      pngTranscoder = new BatikPngTranscoder();
+          "declare variable $text-format external;\n" +
+          "declare variable $img-format external;\n" +
+          "declare variable $inline external;\n" +
+          "d:disassemble($input, $text-format, $img-format, $inline)");
+      getSingleFileName = defaultXQueryProcessor().compile(
+          "declare variable $files as document-node() external;\n" +
+          "declare variable $index as xs:integer external;\n" +
+          "string($files/files/file[$index]/@name)");
+      getSingleFileContent = defaultXQueryProcessor().compile(
+          "declare variable $files as document-node() external;\n" +
+          "declare variable $index as xs:integer external;\n" +
+          "$files/files/file[$index]/node()");
     }
     catch (RuntimeException e)
     {
@@ -67,94 +50,50 @@ public class XhtmlToZip
     }
   }
 
-  private void toPng(XdmNode svg, OutputStream os) throws Exception
+  public void convert(String xhtml, String textFormat, String graphicsFormat, OutputStream zip) throws Exception
   {
-    pngTranscoder.transcode(svg, os);
-  }
-
-  private void toXml(XdmNode e, OutputStream os) throws SaxonApiException
-  {
-    Serializer serializer = processor.newSerializer(os);
-    serializer.setOutputProperty(Serializer.Property.OMIT_XML_DECLARATION, "no");
-    serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
-    serializer.serializeNode(e);
-  }
-
-  private void toHtm(XdmNode e, OutputStream os) throws SaxonApiException
-  {
-    Serializer serializer = processor.newSerializer(os);
-    serializer.setOutputProperty(Serializer.Property.OMIT_XML_DECLARATION, "yes");
-    serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
-    serializer.setOutputProperty(Serializer.Property.METHOD, "html");
-    serializer.setOutputProperty(Serializer.Property.ENCODING, StandardCharsets.UTF_8.name());
-    serializer.setOutputProperty(Serializer.Property.VERSION, "4.01");
-    serializer.setOutputProperty(Serializer.Property.DOCTYPE_SYSTEM, "http://www.w3.org/TR/html4/loose.dtd");
-    serializer.setOutputProperty(Serializer.Property.DOCTYPE_PUBLIC, "-//W3C//DTD HTML 4.01 Transitional//EN");
-    serializer.serializeNode(e);
-  }
-
-  private static XdmNode firstElementChild(XdmNode p)
-  {
-    for (XdmSequenceIterator<?> i = p.axisIterator(Axis.CHILD); i.hasNext(); )
-    {
-      XdmNode n = (XdmNode) i.next();
-      if (n.getNodeKind() == XdmNodeKind.ELEMENT)
-      {
-        return n;
-      }
-    }
-    return null;
-  }
-
-  private static XdmNode nextElementChild(XdmNode s)
-  {
-    for (XdmSequenceIterator<?> i = s.axisIterator(Axis.FOLLOWING_SIBLING); i.hasNext(); )
-    {
-      XdmNode n = (XdmNode) i.next();
-      if (n.getNodeKind() == XdmNodeKind.ELEMENT)
-      {
-        return n;
-      }
-    }
-    return null;
-  }
-
-  public void convert(Source source, OutputStream zip) throws Exception
-  {
-    XQueryEvaluator evaluator = executable.load();
-    DocumentBuilder db = processor.newDocumentBuilder();
-
-    evaluator.setExternalVariable(new QName("input"), db.build(source));
-    evaluator.setExternalVariable(new QName("format"), new XdmAtomicValue("png"));
-    XdmValue result = evaluator.evaluate();
-
+    Result files = transformToFiles.evaluate(Map.of(
+        "input", defaultXQueryProcessor().parseXml(xhtml),
+        "text-format", textFormat,
+        "img-format", graphicsFormat,
+        "inline", false));
     try (ZipOutputStream zipFile = new ZipOutputStream(zip))
     {
-      for (XdmNode e = firstElementChild((XdmNode) result.itemAt(0));
-           e != null;
-           e = nextElementChild(e))
-      {
-        String name = URLDecoder.decode(e.getAttributeValue(new QName("name")), StandardCharsets.UTF_8.name());
+      for (int index = 1;; ++index) {
+        Map<String, Object> externalVars = Map.of(
+            "files", files,
+            "index", index);
+        String name = getSingleFileName
+            .evaluate(externalVars)
+            .serializeToString(Collections.singletonMap("method", "text"));
+        if (name.isEmpty())
+          break;
+        Result content = getSingleFileContent
+            .evaluate(externalVars);
         zipFile.putNextEntry(new ZipEntry(name));
-
-        XdmNode content = firstElementChild(e);
         if (name.endsWith(".png"))
         {
-          if (verbose)
-          {
-            System.out.println("converting " + name + " using Batik");
-          }
-          toPng(content, zipFile);
+          BatikImgTranscoder.PNG.transcode(content.serializeToString(Collections.emptyMap()), zipFile);
         }
         else if (name.endsWith(".htm") || name.endsWith(".html"))
         {
-          toHtm(content, zipFile);
+          content.serialize(zipFile, OutputOptions.HTML.value());
         }
-        else
+        else if (name.endsWith(".xht") || name.endsWith(".xhtml"))
         {
-          toXml(content, zipFile);
+          content.serialize(zipFile, OutputOptions.XHTML.value());
         }
-
+        else if (name.endsWith(".svg") || name.endsWith(".xml"))
+        {
+          content.serialize(zipFile, OutputOptions.XML.value());
+        }
+        else if (name.endsWith(".md"))
+        {
+          content.serialize(zipFile, OutputOptions.TEXT.value());
+        }
+        else {
+          throw new UnsupportedOperationException("serialization not supported for " + name);
+        }
         zipFile.closeEntry();
       }
     }

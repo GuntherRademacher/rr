@@ -13,16 +13,20 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '1.68-SNAPSHOT'
+version = '2.0-SNAPSHOT'
 group = 'de.bottlecaps.rr'
 def buildTime = new Date()
+def aceVersion = '1.14.0'
 
-def generatedSrc = "$buildDir/generated-src/main/java"
+def generatedSrc = "$buildDir/generated-src/main"
 
 sourceSets {
     main {
         java {
-            srcDirs += ["$generatedSrc"]
+            srcDirs += ["$generatedSrc/java"]
+        }
+        resources {
+            srcDirs += ["$generatedSrc/resources"]
         }
     }
 }
@@ -31,14 +35,21 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.72'
+configurations {
+    ace
+}
 
-    implementation 'net.sf.saxon:Saxon-HE:10.6'
+dependencies {
+    ace "org.webjars.npm:ace-builds:$aceVersion"
+
+    compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.85'
+
+    implementation 'net.sf.saxon:Saxon-HE:12.0'
+    implementation 'org.xmlresolver:xmlresolver:4.6.0'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
-    implementation 'org.apache.xmlgraphics:batik-all:1.14'
+    implementation 'org.apache.xmlgraphics:batik-all:1.16'
     implementation 'xml-apis:xml-apis-ext:1.3.04'
-    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.6'
+    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.8'
 }
 
 configurations.all {
@@ -58,12 +69,22 @@ jar {
 
 licenseReport {
     outputDir = "$buildDir/LICENSE"
+    configurations = ['runtimeClasspath', 'ace']
     renderers = [new com.github.jk1.license.render.TextReportRenderer()]
 }
 
 task generateSrc {
     doFirst {
-        def railroadVersion = new File("$generatedSrc/de/bottlecaps/railroad", 'RailroadVersion.java')
+        def aceBuilds = configurations.ace.find { it =~ /ace-builds/ }
+        def zip = new java.util.zip.ZipFile(aceBuilds)
+        ['ace.js', 'ext-searchbox.js'].each { script ->
+            def entry = zip.getEntry("META-INF/resources/webjars/ace-builds/$aceVersion/src-min-noconflict/$script")
+            def file = new File("$generatedSrc/resources/htdocs/$script")
+            file.parentFile.exists() || file.parentFile.mkdirs()
+            file.withWriter { it << zip.getInputStream(entry) }
+        }
+
+        def railroadVersion = new File("$generatedSrc/java/de/bottlecaps/railroad", 'RailroadVersion.java')
         railroadVersion.parentFile.exists() || railroadVersion.parentFile.mkdirs()
         railroadVersion.withWriter {
             it << $/package de.bottlecaps.railroad;
@@ -81,6 +102,7 @@ public class RailroadVersion
 
 compileJava {
     dependsOn generateSrc
+    options.release = 11
 }
 
 java {
@@ -119,6 +141,7 @@ This distribution also includes
       - Apache Batik
       - Apache XML Graphics Commons
       - Apache XML Commons XML APIs
+      - Ace Editor
 
 For their license information see THIRD-PARTY-NOTICES.txt.
 
@@ -134,7 +157,7 @@ war {
         attributes (
             'Main-Class': 'de.bottlecaps.fatjar.Loader',
             'FatJar-Main-Class': 'de.bottlecaps.railroad.Railroad',
-            'FatJar-Jars': 'WEB-INF/lib/' + jar.archiveName + ' ' + configurations.runtimeClasspath.collect{'WEB-INF/lib/' + it.name}.join(' '),
+            'FatJar-Jars': 'WEB-INF/lib/' + jar.archiveFileName.get() + ' ' + configurations.runtimeClasspath.collect{'WEB-INF/lib/' + it.name}.join(' '),
             'Implementation-Version': archiveVersion,
             'Build-Timestamp': new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(buildTime)
         )
@@ -154,7 +177,7 @@ war {
 
 task distZip(type:JavaExec) {
     dependsOn war
-    main = '-jar'
+    mainClass = '-jar'
     args "$buildDir/libs/rr.war", '-distZip'
     workingDir = "$buildDir/distributions"
 

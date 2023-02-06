@@ -54,7 +54,7 @@ For listing the full set of available options, run
 without further command line arguments.
 
 ## Building RR
-For building RR, JDK 8 (or higher) must be available. In the
+For building RR, JDK 11 (or higher) must be available. In the
 project folder, run this command to build the distribution .zip file:
 
 ```bash

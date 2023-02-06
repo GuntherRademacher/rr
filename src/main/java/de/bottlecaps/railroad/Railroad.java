@@ -1,5 +1,7 @@
 package de.bottlecaps.railroad;
 
+import static java.util.function.Function.identity;
+
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -11,11 +13,14 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import de.bottlecaps.railroad.RailroadGenerator.GraphicsFormat;
+import de.bottlecaps.railroad.RailroadGenerator.TextFormat;
 import de.bottlecaps.railroad.core.Download;
 import de.bottlecaps.railroad.webapp.RailroadServer;
 
 public class Railroad
 {
+  private static final String RR_URL = "https://bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
   private static final String COLOR_PATTERN = "#[0-9a-fA-F]{6}";
   private static final String INTEGER_PATTERN = "[0-9]+";
   private static final int DEFAULT_PORT = 8080;
@@ -141,13 +146,21 @@ public class Railroad
           break;
         }
       }
-      else if (arg.equals("-png"))
+      else if (arg.equals("-html"))
       {
-        generator.setOutputType(RailroadGenerator.OutputType.HTML_PNG_ZIP);
+        generator.setTextFormat(TextFormat.HTML);
       }
       else if (arg.equals("-md"))
       {
-        generator.setOutputType(RailroadGenerator.OutputType.MARKDOWN_SVG);
+        generator.setTextFormat(TextFormat.MARKDOWN);
+      }
+      else if (arg.equals("-noembedded"))
+      {
+        generator.setEmbedded(false);
+      }
+      else if (arg.equals("-png"))
+      {
+        generator.setGraphicsFormat(GraphicsFormat.PNG);
       }
       else if (arg.startsWith("-out:"))
       {
@@ -219,7 +232,11 @@ public class Railroad
     {
       try (OutputStream outputStream = new FileOutputStream(Download.DOWNLOAD_FILENAME))
       {
-        Download.distZip(outputStream);
+        Download.distZip(
+                (out, warName) -> Railroad.usage(out, warName),
+                identity(),
+                Download.warFile(),
+                outputStream);
       }
     }
     else if (gui)
@@ -240,18 +257,6 @@ public class Railroad
     }
   }
 
-  private static String decode(Charset charset, byte[] bytes)
-  {
-    if (charset == null)
-    {
-      return decode(bytes);
-    }
-    else
-    {
-      return decode(bytes, 0, charset);
-    }
-  }
-
   public static void usage(PrintStream out, final String file)
   {
     final String jar = file.endsWith(".war") ? "-jar " : "";
@@ -259,10 +264,12 @@ public class Railroad
     out.println();
     out.println("  version " + RailroadVersion.VERSION);
     out.println("  released " + RailroadVersion.DATE);
-    out.println("  from " + RailroadGenerator.RR_URL);
+    out.println("  from " + RR_URL);
     out.println();
-    out.println("Usage: java " + jar + file + " {-suppressebnf|-keeprecursion|-nofactoring|-noinline|-noepsilon|-color:COLOR|-offset:OFFSET|-png|-md|-out:FILE|width:PIXELS}... GRAMMAR");
+    out.println("Usage: java " + jar + file + " {OPTION}... GRAMMAR");
     out.println("    or java " + jar + file + " -gui [-port:PORT]");
+    out.println();
+    out.println("  Options:");
     out.println();
     out.println("  -suppressebnf    do not show EBNF next to generated diagrams");
     out.println("  -keeprecursion   no direct recursion elimination");
@@ -271,8 +278,10 @@ public class Railroad
     out.println("  -noepsilon       remove nonterminal references that derive to epsilon only");
     out.println("  -color:COLOR     use COLOR as base color, pattern: " + COLOR_PATTERN);
     out.println("  -offset:OFFSET   hue offset to secondary color in degrees");
-    out.println("  -png             create HTML+PNG in a ZIP file, rather than XHTML+SVG output");
-//  out.println("  -md              create Markdown with embedded SVG, rather than XHTML+SVG output");
+    out.println("  -html            create HTML output, rather than XHTML");
+    out.println("  -md              create Markdown output, rather than XHTML");
+    out.println("  -png             create PNG graphics, rather than SVG");
+    out.println("  -noembedded      create text and graphics in separate files in a zip, rather than embedded graphics");
     out.println("  -out:FILE        create FILE, rather than writing result to standard output");
     out.println("  -width:PIXELS    try to break graphics into multiple lines, when width exceeds PIXELS (default 992)");
     out.println("  -enc:ENCODING    set grammar input encoding (default: autodetect UTF8/16 or use system encoding)");
@@ -297,6 +306,18 @@ public class Railroad
     for (int length; (length = input.read(chunk)) != -1; )
       buffer.write(chunk, 0, length);
     return buffer.toByteArray();
+  }
+
+  private static String decode(Charset charset, byte[] bytes)
+  {
+    if (charset == null)
+    {
+      return decode(bytes);
+    }
+    else
+    {
+      return decode(bytes, 0, charset);
+    }
   }
 
   private static String decode(byte[] bytes)

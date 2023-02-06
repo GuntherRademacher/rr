@@ -162,7 +162,7 @@ declare function n:group-productions-by-nonterminal(
  : for factorization, or railroad diagram creation. A normalized grammar has
  : the g:optional and g:zeroOrMore operators replaced by equivalent combinations
  : of the g:choice and g:oneOrMore operators. Empty branches of g:choice operators
- : are ordered last.
+ : are ordered according to $n:empty-last.
  :
  : @param $nodes the grammar fragment to be normalized.
  : @return the normalized grammar fragment.

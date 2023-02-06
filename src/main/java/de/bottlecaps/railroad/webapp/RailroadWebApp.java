@@ -1,35 +1,27 @@
 package de.bottlecaps.railroad.webapp;
 
+import static de.bottlecaps.xml.XQueryProcessor.defaultXQueryProcessor;
+import static java.util.function.Function.identity;
+
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-import javax.xml.transform.OutputKeys;
-
+import de.bottlecaps.railroad.Railroad;
 import de.bottlecaps.railroad.RailroadVersion;
 import de.bottlecaps.railroad.core.Download;
 import de.bottlecaps.railroad.core.ExtensionFunctions;
-import de.bottlecaps.railroad.core.ResourceModuleUriResolver;
-import de.bottlecaps.railroad.core.TextWidth;
 import de.bottlecaps.webapp.Request;
 import de.bottlecaps.webapp.Response;
-import net.sf.saxon.lib.Feature;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SaxonApiException;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.Serializer.Property;
-import net.sf.saxon.s9api.XQueryCompiler;
-import net.sf.saxon.s9api.XQueryEvaluator;
-import net.sf.saxon.s9api.XQueryExecutable;
-import net.sf.saxon.s9api.XdmAtomicValue;
-import net.sf.saxon.s9api.XdmValue;
+import de.bottlecaps.xml.XQueryProcessor.Plan;
+import de.bottlecaps.xml.XQueryProcessor.Result;
 
 public class RailroadWebApp
 {
@@ -39,27 +31,21 @@ public class RailroadWebApp
   private static final String TEXT_PLAIN = "text/plain";
   private static final String APPLICATION_ZIP = "application/zip";
   private static final String UTF_8 = "UTF-8";
-  private static Processor processor;
-  private static XQueryExecutable executable;
+
+  private static Plan queryPlan;
 
   static
   {
-    processor = new Processor(false);
-    processor.setConfigurationProperty(Feature.XSD_VERSION, "1.1");
-
-    new ExtensionFunctions().initialize(processor.getUnderlyingConfiguration());
-    new TextWidth.SaxonInitializer().initialize(processor.getUnderlyingConfiguration());
-
-    XQueryCompiler compiler = processor.newXQueryCompiler();
-    compiler.setModuleURIResolver(ResourceModuleUriResolver.instance);
     try
     {
+      String moduleNamespace = "de/bottlecaps/railroad/xq/user-interface.xq";
+      URL moduleURL = Thread.currentThread().getContextClassLoader().getResource(moduleNamespace);
       String query =
-          "import module namespace ui=\"de/bottlecaps/railroad/xq/user-interface.xq\";\n" +
+          "import module namespace ui='" + moduleNamespace + "' at '" + moduleURL + "';\n" +
           "ui:ui()";
-      executable = compiler.compile(query);
+      queryPlan = defaultXQueryProcessor().compile(query);
     }
-    catch (SaxonApiException e)
+    catch (Exception e)
     {
       throw new RuntimeException(e.getMessage(), e);
     }
@@ -85,7 +71,19 @@ public class RailroadWebApp
     }
     else if (! pathInfo.equals("/ui"))
     {
-      if (! pathInfo.equals(DOWNLOAD_PATH) || ! download(response))
+      if (pathInfo.equals(DOWNLOAD_PATH) && Download.warFile(request) != null)
+      {
+        response.setStatus(200);
+        response.setContentType(APPLICATION_ZIP);
+        response.setHeader("Content-Disposition", "attachment; filename=" + Download.DOWNLOAD_FILENAME);
+        OutputStream outputStream = response.getOutputStream();
+        Download.distZip(
+                (out, warName) -> Railroad.usage(out, warName),
+                identity(),
+                Download.warFile(request),
+                outputStream);
+      }
+      else
       {
         try (InputStream inputStream = RailroadWebApp.class.getResourceAsStream("/htdocs" + pathInfo)) {
           if (inputStream == null)
@@ -118,34 +116,33 @@ public class RailroadWebApp
     {
       try
       {
-        response.setCharacterEncoding(UTF_8);
-        response.setContentType(TEXT_XML);
-        Serializer serializer = processor.newSerializer();
-
         // establish default properties
 
-        ExtensionFunctions.setSerializationProperty(OutputKeys.METHOD, "xml", response, serializer);
-        ExtensionFunctions.setSerializationProperty(OutputKeys.MEDIA_TYPE, TEXT_XML, response, serializer);
-        ExtensionFunctions.setSerializationProperty(OutputKeys.ENCODING, UTF_8, response, serializer);
+        Map<String, String> outputOptions = new HashMap<>();
+        outputOptions.put("method", "xml");
+        outputOptions.put("media-type", TEXT_XML);
+        outputOptions.put("encoding", UTF_8);
 
-        XQueryEvaluator evaluator = executable.load();
-        evaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "version"), new XdmAtomicValue(RailroadVersion.VERSION));
-        evaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "java-version"), new XdmAtomicValue(Download.javaVersion()));
-        evaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "date"), new XdmAtomicValue(RailroadVersion.DATE));
+        Map<String, Object> externalVariables = new HashMap<>();
+        externalVariables.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}version", RailroadVersion.VERSION);
+        externalVariables.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}java-version", Download.javaVersion());
+        externalVariables.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}date", RailroadVersion.DATE);
 
-        List<String> parameterValues = ExtensionFunctions.parameterValues(request, "padding");
-        if (parameterValues.size() > 0 && parameterValues.get(0).matches("[0-9]+"))
-          evaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "padding"), new XdmAtomicValue(Integer.parseInt(parameterValues.get(0))));
+        String[] parameterValues = ExtensionFunctions.parameterValues(request, "padding");
+        if (parameterValues.length > 0 && parameterValues[0].matches("[0-9]+")) {
+          externalVariables.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}padding", Integer.parseInt(parameterValues[0]));
+        }
 
         parameterValues = ExtensionFunctions.parameterValues(request, "strokewidth");
-        if (parameterValues.size() > 0 && parameterValues.get(0).matches("[0-9]+"))
-          evaluator.setExternalVariable(new QName("de/bottlecaps/railroad/xq/ast-to-svg.xq", "stroke-width"), new XdmAtomicValue(Integer.parseInt(parameterValues.get(0))));
+        if (parameterValues.length > 0 && parameterValues[0].matches("[0-9]+")) {
+          externalVariables.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}stroke-width", Integer.parseInt(parameterValues[0]));
+        }
 
-        ExtensionFunctions.request.set(request, evaluator);
-        ExtensionFunctions.response.set(response, evaluator);
-        ExtensionFunctions.serializer.set(serializer, evaluator);
+        externalVariables.put("{de/bottlecaps/railroad/xq/user-interface.xq}request", request);
+        externalVariables.put("{de/bottlecaps/railroad/xq/user-interface.xq}response", response);
+        externalVariables.put("{de/bottlecaps/railroad/xq/user-interface.xq}output-options", outputOptions);
 
-        XdmValue result = evaluator.evaluate();
+        Result result = queryPlan.evaluate(externalVariables);
 
 //        System.out.println("Output properties: ");
 //        for (Serializer.Property property : Serializer.Property.values())
@@ -158,14 +155,14 @@ public class RailroadWebApp
 //        }
 //        System.out.println("End output properties");
 
-        if ("application/zip".equals(serializer.getOutputProperty(Property.MEDIA_TYPE)))
+        if (APPLICATION_ZIP.equals(outputOptions.get("media-type")))
         {
+          outputOptions.put("method", "text");
+          outputOptions.put("encoding", UTF_8);
+          setResponseParameters(response, outputOptions);
+
           ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-          serializer.setOutputStream(byteArrayOutputStream);
-          serializer.setOutputProperty(Property.METHOD, "text");
-          serializer.setOutputProperty(Property.ENCODING, UTF_8);
-          serializer.serializeXdmValue(result);
-          serializer.close();
+          result.serialize(byteArrayOutputStream, outputOptions);
           String base64 = new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
 
           try (OutputStream outputStream = response.getOutputStream()) {
@@ -174,42 +171,30 @@ public class RailroadWebApp
         }
         else
         {
+          setResponseParameters(response, outputOptions);
           try (OutputStream outputStream = response.getOutputStream()) {
-            serializer.setOutputStream(outputStream);
-            serializer.serializeXdmValue(result);
-            serializer.close();
+            result.serialize(outputStream, outputOptions);
           }
         }
       }
-      catch (SaxonApiException e)
+      catch (Exception e)
       {
         throw new RuntimeException(e.getMessage(), e);
       }
     }
   }
 
-  private boolean download(Response response) throws IOException
-  {
-    File warFile = Download.warFile();
-    if (warFile == null)
-    {
-      return false;
-    }
-    else
-    {
-      response.setStatus(200);
-      response.setContentType(APPLICATION_ZIP);
-      response.setHeader("Content-Disposition", "attachment; filename=" + Download.DOWNLOAD_FILENAME);
-      OutputStream outputStream = response.getOutputStream();
-      Download.distZip(outputStream);
-      return true;
-    }
+  private void setResponseParameters(Response response, Map<String, String> outputOptions) {
+    String mediaType = outputOptions.get("media-type");
+    response.setContentType(mediaType);
+    String encoding = outputOptions.get("encoding");
+    response.setCharacterEncoding(encoding);
   }
 
-  private String contentType(String pathInfo)
+  private static String contentType(String pathInfo)
   {
-    if (pathInfo.endsWith(".png"))
-      return "image/png";
+    if (pathInfo.endsWith(".js"))
+      return "text/javascript";
     else if (pathInfo.endsWith(".ico"))
       return "image/x-icon";
     else if (pathInfo.endsWith(".zip"))

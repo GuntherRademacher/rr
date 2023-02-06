@@ -67,9 +67,9 @@ declare function b:render-endOfFile($item as element()) as xs:string
  : @param $text
  : @param $indent
  :)
-declare function b:re-indent($text as xs:string, $indent as xs:integer) as xs:string?
+declare function b:re-indent($text as xs:string?, $indent as xs:integer) as xs:string?
 {
-  let $trimmed := replace($text, "(^\s+)|(\s+$)", "")
+  let $trimmed := replace(replace($text, "(^\s+)|(\s+$)", ""), "&#xD;&#xA;", "&#xA;")
   let $lines := tokenize($trimmed, "&#10;")
   where exists($lines)
   return
@@ -620,12 +620,12 @@ declare function b:render-items($nodes as node()*)
  : @param $todo the sequence of nodes to be rendered.
  : @return the rendered result.
  :)
-declare function b:break-lines($done, $todo) as element(ebnf)
+declare function b:break-lines($done-earlier, $done-last, $todo) as element(ebnf)
 {
   if (empty($todo)) then
     element ebnf
     {
-      for $d at $i in $done
+      for $d at $i in ($done-earlier, $done-last)
       return (<lf>&#xA;</lf>[$i > 1], $d)
     }
   else
@@ -634,64 +634,58 @@ declare function b:break-lines($done, $todo) as element(ebnf)
     return
       typeswitch ($item)
       case element(tab) return
-        let $n := xs:integer($item/@col - string-length($done[last()]) - 1)
+        let $tab := xs:integer($item/@col) - 1
+        let $n := $tab - string-length($done-last)
         return
           if ($n = 0) then
-            b:break-lines($done, $todo)
+            b:break-lines($done-earlier, $done-last, $todo)
           else if ($n > 0) then
-            let $spaces := string-join(for $i in (1 to $n) return " ", "")
-            return b:break-lines(($done[position() < last()], element line {$done[last()]/node(), text{$spaces}}), $todo)
-          else if (normalize-space($done[last()]) != "") then
-            let $spaces := string-join(for $i in (1 to xs:integer($item/@col) - 1) return " ", "")
-            return b:break-lines(($done, element line {$spaces}), $todo)
+            let $spaces := string-join((1 to $n)!" ")
+            return b:break-lines($done-earlier, element line {$done-last/node(), text{$spaces}}, $todo)
+          else if (normalize-space($done-last) != "") then
+            let $spaces := string-join((1 to $tab)!" ")
+            return b:break-lines(($done-earlier, $done-last), element line {$spaces}, $todo)
           else
-            let $spaces := string-join(for $i in (1 to xs:integer($item/@col) - 1) return " ", "")
-            return b:break-lines(($done[position() < last()], element line {$spaces}), $todo)
+            let $spaces := string-join((1 to $tab)!" ")
+            return b:break-lines(($done-earlier, $done-last), element line {$spaces}, $todo)
       case element(fragment) return
         b:break-lines
         (
-          (
-            $done[position() < last()],
-            element line{$done[last()]/node(), text{" "}[$done[last()] != ""], $item/node()}
-          ),
+          $done-earlier,
+          element line{$done-last/node(), text{" "}[$done-last != ""], $item/node()},
           $todo
         )
       case element(name) return
         b:break-lines
         (
-          (
-            $done[position() < last()],
-            element line{$done[last()]/node(), text{" "}[$done[last()] != ""], $item}
-          ),
+          $done-earlier,
+          element line{$done-last/node(), text{" "}[$done-last != ""], $item},
           $todo
         )
       case text() return
         b:break-lines
         (
-          (
-            $done[position() < last()],
-            element line{$done[last()]/node(), text{" "}[$done[last()] != ""], $item}
-          ),
+          $done-earlier,
+          element line{$done-last/node(), text{" "}[$done-last != ""], $item},
           $todo
         )
       case xs:string return
         b:break-lines
         (
-          (
-            $done[position() < last()],
-            element line{$done[last()]/node(), text{" "}[$done[last()] != ""], text{$item}}
-          ),
+          $done-earlier,
+          element line{$done-last/node(), text{" "}[$done-last != ""], text{$item}},
           $todo
         )
       case processing-instruction() return
         if (local-name($item) = "TOKENS" and $item = "") then
-          b:break-lines($done, (<tab col="1"/>, "&#xa;<?TOKENS?>&#xa;", <tab col="1"/>, $todo))
+          b:break-lines($done-earlier, $done-last, (<tab col="1"/>, "&#xa;<?TOKENS?>&#xa;", <tab col="1"/>, $todo))
         else if (local-name($item) = "ENCORE" and $item = "") then
-          b:break-lines($done, (<tab col="1"/>, "&#xa;<?ENCORE?>", <tab col="1"/>, $todo))
+          b:break-lines($done-earlier, $done-last, (<tab col="1"/>, "&#xa;<?ENCORE?>", <tab col="1"/>, $todo))
         else
           b:break-lines
           (
-            $done,
+            $done-earlier,
+            $done-last,
             (
               <tab col="{$b:t2}"/>,
               let $data := replace(data($item), "^#line [0-9]+ ""[^""]*""\s+", "")
@@ -765,7 +759,7 @@ declare function b:to-html($nodes as node()*, $namespace as xs:string?) as node(
  :)
 declare function b:render($nodes as node()*) as xs:string
 {
-  b:break-lines((), b:render-items($nodes))
+  b:break-lines((), (), b:render-items($nodes))
 };
 
 (:~
@@ -777,5 +771,5 @@ declare function b:render($nodes as node()*) as xs:string
  :)
 declare function b:render-as-html($nodes as node()*, $namespace as xs:string?) as node()*
 {
-  b:to-html(b:break-lines((), b:render-items($nodes)), $namespace)
+  b:to-html(b:break-lines((), (), b:render-items($nodes)), $namespace)
 };

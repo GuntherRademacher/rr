@@ -4,7 +4,7 @@
 module namespace style="de/bottlecaps/railroad/xq/style.xq";
 
 import module namespace c="de/bottlecaps/railroad/xq/color.xq" at "color.xq";
-import module namespace v="de/bottlecaps/railroad/xq/ast-to-svg.xq" at "ast-to-svg.xq";
+import module namespace s="de/bottlecaps/railroad/xq/ast-to-svg.xq" at "ast-to-svg.xq";
 
 declare namespace xhtml="http://www.w3.org/1999/xhtml";
 
@@ -75,12 +75,12 @@ declare function style:color-fg-hilite($color as xs:string) {c:relative-color($c
 declare function style:color-text($color as xs:string) {c:relative-color($color, 1.0, 0.99)};
 
 (:~
- : Construct standard xhtml:style element for use by all pages.
+ : Construct standard xhtml:style content for use by all pages.
  :
  : @param $color the base color code.
- : @return the xhtml:style element
+ : @return the xhtml:style element content as a string
  :)
-declare function style:css($color as xs:string, $width as xs:integer?) as element(xhtml:style)
+declare function style:css($color as xs:string, $width as xs:integer?) as xs:string
 {
   <style type="text/css" xmlns="http://www.w3.org/1999/xhtml">
     ::-moz-selection
@@ -93,11 +93,17 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
       color: {style:color-background($color)};
       background: {style:color-foreground($color)};
     }}
-    .ebnf a, .grammar a
+    body
+    {{
+      font: normal 12px Verdana, sans-serif;
+      color: {style:color-foreground($color)};
+      background: {style:color-background($color)};
+    }}
+    .ebnf a
     {{
       text-decoration: none;
     }}
-    .ebnf a:hover, .grammar a:hover
+    .ebnf a:hover
     {{
       color: {style:color-fg-hilite($color)};
       text-decoration: underline;
@@ -108,12 +114,6 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
       font-size: 11px;
       text-align: right;
     }}
-    body
-    {{
-      font: normal 12px Verdana, sans-serif;
-      color: {style:color-foreground($color)};
-      background: {style:color-background($color)};
-    }}
     a:link, a:visited
     {{
       color: {style:color-foreground($color)};
@@ -121,6 +121,46 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
     a:link.signature, a:visited.signature
     {{
       color: {style:color-fg-button($color)};
+    }}
+    div.ebnf
+    {{
+      padding: {$s:padding}px;
+      background: {style:color-bg-hilite($color)};
+      width: {($width, $s:page-width)[1]}px;
+    }}
+    .ebnf div
+    {{
+      padding-left: 13ch;
+      text-indent: -13ch;
+    }}
+    .ebnf code
+    {{
+      font:12px SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+    }}
+  </style>
+};
+
+(:~
+ : Construct xhtml:style content for use by UI.
+ :
+ : @param $color the base color code.
+ : @return the xhtml:style element content as a string
+ :)
+declare function style:ui-css($color as xs:string) as xs:string
+{
+  <style type="text/css" xmlns="http://www.w3.org/1999/xhtml">
+    .grammar a
+    {{
+      text-decoration: none;
+    }}
+    .grammar a:hover
+    {{
+      color: {style:color-fg-hilite($color)};
+      text-decoration: underline;
+    }}
+    .grammar code, #editor, pre
+    {{
+      font:12px SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
     }}
     a.button, #tabs li a
     {{
@@ -162,18 +202,21 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
       border-bottom: 1px solid {style:color-background($color)};
       outline: none;
     }}
-    #divs div
+    #divs div[name="div"]
     {{
       display: none;
       overflow:auto;
     }}
-    #divs div.active
+    #divs div[name="div"].active
     {{
       display: block;
     }}
-    #text
+    #editor
     {{
-      border-color: {style:color-fg-button($color)};
+      height: 100%;
+      width:100%;
+      margin-bottom: 10px;
+      border: 1px solid {style:color-fg-button($color)};
       background: {style:color-text($color)};
       color: {style:color-fg-hilite($color)};
     }}
@@ -206,34 +249,22 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
       top: 94px;
       padding: 10px;
       border: 1px dotted {style:color-foreground($color)};
+      width: 220px;
+      max-width: 220px;
     }}
-    #divs div.ebnf, .ebnf code
+    .download-option
     {{
-      display: block;
-      padding: {$v:padding}px;
-      background: {style:color-bg-hilite($color)};
-      width: {($width, $v:page-width)[1]}px;
+      width: 100px;
+      height: 22px;
+      max-width: 100px;
+      max-height: 22px;
     }}
-    #divs div.grammar
+    div.grammar
     {{
-      display: block;
       padding-left: 16px;
       padding-top: 2px;
       padding-bottom: 2px;
       background: {style:color-bg-hilite($color)};
-    }}
-    pre
-    {{
-      margin: 0px;
-    }}
-    .ebnf div
-    {{
-      padding-left: 13ch;
-      text-indent: -13ch;
-    }}
-    .ebnf code, .grammar code, textarea, pre
-    {{
-      font:12px SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
     }}
     tr.option-line td:first-child
     {{
@@ -242,6 +273,10 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
     tr.option-text td
     {{
       padding-bottom: 10px
+    }}
+    pre
+    {{
+      margin: 0px;
     }}
     table.palette
     {{
@@ -266,6 +301,39 @@ declare function style:css($color as xs:string, $width as xs:integer?) as elemen
       -moz-user-select: none;
       -o-user-select: none;
       -ms-user-select: none;
+    }}
+    .ace_gutter-layer
+    {{
+      background: {style:color-background($color)} !important;
+      border-right: 1px dashed {style:color-fg-button($color)} !important;
+    }}
+    .ace_active-line
+    {{
+      background: {style:color-background($color)} !important;
+    }}
+    .ace_search
+    {{
+      border-color: {style:color-fg-button($color)} !important;
+    }}
+    .ace_selection, .ace_search
+    {{
+      background: {style:color-bg-button($color)} !important;
+    }}
+    .ace_gutter-active-line
+    {{
+      background: {style:color-bg-hilite($color)} !important;
+    }}
+    .ace_search_field, .ace_searchbtn, .ace_button:hover
+    {{
+      background: {style:color-text($color)} !important;
+    }}
+    .ace_button.checked
+    {{
+      border-color: {style:color-foreground($color)} !important;
+    }}
+    .ace_searchbtn:hover
+    {{
+      background: {style:color-bg-hilite($color)} !important;
     }}
   </style>
 };

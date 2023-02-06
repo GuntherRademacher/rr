@@ -1,4 +1,5 @@
 package de.bottlecaps.railroad.core;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -6,12 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-import net.sf.saxon.Configuration;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.XdmNode;
-
-public class RsvgPngTranscoder implements PngTranscoder
+public class RsvgPngTranscoder implements ImgTranscoder
 {
   public static final String RSVG_CONVERT_PROPERTY = "rsvg.convert";
   public static final String RSVG_CONVERT_DEFAULT = "rsvg-convert";
@@ -23,7 +19,7 @@ public class RsvgPngTranscoder implements PngTranscoder
   }
 
   @Override
-  public void transcode(XdmNode svg, OutputStream o) throws Exception {
+  public void transcode(String svg, OutputStream o) throws Exception {
     File pngFile = File.createTempFile(XhtmlToZip.class.getName() + "-", ".png");
     String pngFileName = pngFile.getAbsolutePath();
     String nativeFileName = pngFileName;
@@ -43,10 +39,7 @@ public class RsvgPngTranscoder implements PngTranscoder
       Process proc = Runtime.getRuntime().exec(commandLine);
 
       OutputStream stdin = proc.getOutputStream();
-      Serializer serializer = new Processor(new Configuration()).newSerializer(stdin);
-      serializer.setOutputProperty(Serializer.Property.OMIT_XML_DECLARATION, "no");
-      serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
-      serializer.serializeNode(svg);
+      stdin.write(svg.getBytes(StandardCharsets.UTF_8));
       stdin.close();
 
       StreamCollector stderr = new StreamCollector(proc.getErrorStream());
