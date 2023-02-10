@@ -26,8 +26,8 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 
 import de.bottlecaps.railroad.core.ExtensionFunctions;
-import de.bottlecaps.webapp.server.HttpRequest;
-import de.bottlecaps.webapp.server.HttpResponse;
+import de.bottlecaps.webapp.Request;
+import de.bottlecaps.webapp.Response;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.jaxp.SaxonTransformerFactory;
 import net.sf.saxon.lib.ParseOptions;
@@ -149,8 +149,8 @@ public class Saxon implements XQueryProcessor, XsltProcessor {
         xdmValue = new XdmAtomicValue((Integer) value);
       else if (value instanceof String)
         xdmValue = new XdmAtomicValue((String) value);
-      else if (value instanceof HttpRequest
-            || value instanceof HttpResponse
+      else if (value instanceof Request
+            || value instanceof Response
             || value instanceof Map)
         xdmValue = XdmValue.wrap(new ObjectValue<>(value));
       else if (value instanceof SaxonResult)
