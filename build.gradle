@@ -13,7 +13,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.0-SNAPSHOT'
+version = '2.0'
 group = 'de.bottlecaps.rr'
 def buildTime = new Date()
 def aceVersion = '1.14.0'
