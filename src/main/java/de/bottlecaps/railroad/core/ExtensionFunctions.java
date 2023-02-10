@@ -183,7 +183,7 @@ public class ExtensionFunctions
 
   public static Object parseXml(String xml) throws Exception
   {
-    return XQueryProcessor.defaultXQueryProcessor().parseXml(xml);
+    return XQueryProcessor.defaultXQueryProcessor().parseXml(xml).getResultObject();
   }
 
   public static String getCookie(Request request, String name) throws IOException
