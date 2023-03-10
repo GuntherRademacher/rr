@@ -1046,7 +1046,7 @@ declare function s:defs($color as xs:string, $spread as xs:integer)
  :)
 declare function s:convert-to-svg($p as element(g:production), $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $with-defs as xs:boolean) as element(svg:svg)
 {
-  let $normalized := n:normalize($p)
+  let $normalized := n:normalize($p, true())
   let $rendered := s:line-break($page-width, 0, 0, (), (), s:render-production(n:introduce-separators($normalized)))
   let $dimensions := s:dimensions($rendered)
   let $width := $dimensions/@width + 2

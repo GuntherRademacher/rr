@@ -11,6 +11,7 @@
 module namespace n="de/bottlecaps/railroad/xq/normalize-ast.xq";
 
 import module namespace b="de/bottlecaps/railroad/xq/ast-to-ebnf.xq" at "ast-to-ebnf.xq";
+import module namespace c = "de/bottlecaps/railroad/xq/color.xq" at "color.xq";
 
 declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
 
@@ -169,6 +170,22 @@ declare function n:group-productions-by-nonterminal(
  :)
 declare function n:normalize($nodes as node()*) as node()*
 {
+  n:normalize($nodes, false())
+};
+
+(:~
+ : Normalize a grammar or fragment of a grammar, such that it becomes suitable
+ : for factorization, or railroad diagram creation. A normalized grammar has
+ : the g:optional and g:zeroOrMore operators replaced by equivalent combinations
+ : of the g:choice and g:oneOrMore operators. Empty branches of g:choice operators
+ : are ordered according to $n:empty-last.
+ :
+ : @param $nodes the grammar fragment to be normalized.
+ : @param $charcode-to-char convert g:charCode of printable chars to g:char.
+ : @return the normalized grammar fragment.
+ :)
+declare function n:normalize($nodes as node()*, $charcode-to-char as xs:boolean) as node()*
+{
   for $node in $nodes
   let $children := n:children($node)
   return
@@ -189,7 +206,17 @@ declare function n:normalize($nodes as node()*) as node()*
       n:choice
       ((
         for $c in n:cases($node)
-        return n:wrap-sequence(n:normalize(n:unwrap-sequence($c)))
+        let $item := n:wrap-sequence(n:normalize(n:unwrap-sequence($c)))
+        return
+          if (not($item/self::g:charCode)) then  
+            $item
+          else
+            let $value := c:unhex($item/@value)
+            return
+              if ($value < 32 or $value > 126) then
+                $item
+              else
+                element g:char{codepoints-to-string($value)}
       ))
     else if ($node/self::g:oneOrMore) then
       element g:oneOrMore {n:normalize($children)}
@@ -443,8 +470,8 @@ declare function n:denormalize-choice($node as element(g:choice)) as element()*
         element g:charClass
         {
           let $ordered-groups :=
-            for $c in $charclass-cases
-            order by exists(($c/@value, $c/@minValue))
+            for $c at $i in $charclass-cases
+            order by exists(($c/@value, $c/@minValue)), $i
             return
               if ($c/self::g:string) then
                 element g:char{data($c)}
