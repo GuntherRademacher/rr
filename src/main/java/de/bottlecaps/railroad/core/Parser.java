@@ -1,32 +1,19 @@
-// This file was generated on Sun Feb 5, 2023 21:58 (UTC+01) by REx v5.57 which is Copyright (c) 1979-2023 by Gunther Rademacher <grd@gmx.net>
-// REx command line: -tree -a none -java -saxon -name de.bottlecaps.railroad.core.Parser Parser.ebnf
+// This file was generated on Sun Mar 12, 2023 18:19 (UTC+01) by REx v5.57 which is Copyright (c) 1979-2023 by Gunther Rademacher <grd@gmx.net>
+// REx command line: -tree -a none -java -basex -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import net.sf.saxon.Configuration;
-import net.sf.saxon.event.Builder;
-import net.sf.saxon.expr.XPathContext;
-import net.sf.saxon.lib.ExtensionFunctionCall;
-import net.sf.saxon.lib.ExtensionFunctionDefinition;
-import net.sf.saxon.lib.Initializer;
-import net.sf.saxon.om.AttributeInfo;
-import net.sf.saxon.om.NoNamespaceName;
-import net.sf.saxon.om.Sequence;
-import net.sf.saxon.om.SmallAttributeMap;
-import net.sf.saxon.om.StructuredQName;
-import net.sf.saxon.trans.XPathException;
-import net.sf.saxon.type.AnySimpleType;
-import net.sf.saxon.type.AnyType;
-import net.sf.saxon.value.SequenceType;
-import net.sf.saxon.expr.parser.Loc;
-import net.sf.saxon.om.AttributeMap;
-import net.sf.saxon.om.EmptyAttributeMap;
-import net.sf.saxon.om.NamespaceMap;
-import net.sf.saxon.s9api.Location;
-import net.sf.saxon.str.StringView;
+import org.basex.build.MemBuilder;
+import org.basex.build.SingleParser;
+import org.basex.core.MainOptions;
+import org.basex.io.IOContent;
+import org.basex.query.value.item.Str;
+import org.basex.query.value.node.ANode;
+import org.basex.query.value.node.DBNode;
+import org.basex.util.Atts;
+import org.basex.util.Token;
 
 public class Parser
 {
@@ -183,17 +170,72 @@ public class Parser
     }
   }
 
-  public static class SaxonTreeBuilder implements EventHandler
+  public static ANode parseGrammar(Str str) throws IOException
+  {
+    BaseXFunction baseXFunction = new BaseXFunction()
+    {
+      @Override
+      public void execute(Parser p) {p.parse_Grammar();}
+    };
+    return baseXFunction.call(str);
+  }
+
+  public static abstract class BaseXFunction
+  {
+    protected abstract void execute(Parser p);
+
+    public ANode call(Str str) throws IOException
+    {
+      String input = str.toJava();
+      SingleParser singleParser = new SingleParser(new IOContent(""), new MainOptions())
+      {
+        @Override
+        protected void parse() throws IOException {}
+      };
+      MemBuilder memBuilder = new MemBuilder(input, singleParser);
+      memBuilder.init();
+      BaseXTreeBuilder treeBuilder = new BaseXTreeBuilder(memBuilder);
+      Parser parser = new Parser();
+      parser.initialize(input, treeBuilder);
+      try
+      {
+        execute(parser);
+      }
+      catch (ParseException pe)
+      {
+        memBuilder = new MemBuilder(input, singleParser);
+        memBuilder.init();
+        Atts atts = new Atts();
+        atts.add(Token.token("b"), Token.token(pe.getBegin() + 1));
+        atts.add(Token.token("e"), Token.token(pe.getEnd() + 1));
+        if (pe.getOffending() < 0)
+        {
+          atts.add(Token.token("s"), Token.token(pe.getState()));
+        }
+        else
+        {
+          atts.add(Token.token("o"), Token.token(pe.getOffending()));
+          atts.add(Token.token("x"), Token.token(pe.getExpected()));
+        }
+        memBuilder.openElem(Token.token("ERROR"), atts, new Atts());
+        memBuilder.text(Token.token(parser.getErrorMessage(pe)));
+        memBuilder.closeElem();
+      }
+      return new DBNode(memBuilder.data());
+    }
+  }
+
+  public static class BaseXTreeBuilder implements EventHandler
   {
     private CharSequence input;
-    private Builder builder;
-    private AnyType anyType;
+    private MemBuilder builder;
+    private Atts nsp = new Atts();
+    private Atts atts = new Atts();
 
-    public SaxonTreeBuilder(Builder b)
+    public BaseXTreeBuilder(MemBuilder b)
     {
       input = null;
       builder = b;
-      anyType = AnyType.getInstance();
     }
 
     @Override
@@ -207,9 +249,9 @@ public class Parser
     {
       try
       {
-        builder.startElement(new NoNamespaceName(name), anyType, NO_ATTRIBUTES, NO_NAMESPACES, LOCATION, 0);
+        builder.openElem(Token.token(name), atts, nsp);
       }
-      catch (XPathException e)
+      catch (IOException e)
       {
         throw new RuntimeException(e);
       }
@@ -220,9 +262,9 @@ public class Parser
     {
       try
       {
-        builder.endElement();
+        builder.closeElem();
       }
-      catch (XPathException e)
+      catch (IOException e)
       {
         throw new RuntimeException(e);
       }
@@ -252,9 +294,9 @@ public class Parser
       {
         try
         {
-          builder.characters(StringView.of(input.subSequence(begin, end).toString()), LOCATION, 0);
+          builder.text(Token.token(input.subSequence(begin, end).toString()));
         }
-        catch (XPathException e)
+        catch (IOException e)
         {
           throw new RuntimeException(e);
         }
@@ -262,93 +304,8 @@ public class Parser
     }
   }
 
-  private static final AttributeMap NO_ATTRIBUTES = EmptyAttributeMap.getInstance();
-  private static final NamespaceMap NO_NAMESPACES = NamespaceMap.emptyMap();
-  private static final Location LOCATION = Loc.NONE;
-
-  public static class SaxonInitializer implements Initializer
+  public Parser()
   {
-    @Override
-    public void initialize(Configuration conf)
-    {
-      conf.registerExtensionFunction(new SaxonDefinition_Grammar());
-    }
-  }
-
-  public static Sequence parseGrammar(XPathContext context, String input) throws XPathException
-  {
-    Builder builder = context.getController().makeBuilder();
-    builder.open();
-    Parser parser = new Parser(input, new SaxonTreeBuilder(builder));
-    try
-    {
-      parser.parse_Grammar();
-    }
-    catch (ParseException pe)
-    {
-      buildError(parser, pe, builder);
-    }
-    return builder.getCurrentRoot();
-  }
-
-  public static class SaxonDefinition_Grammar extends SaxonDefinition
-  {
-    @Override
-    public String functionName() {return "parse-Grammar";}
-    @Override
-    public Sequence execute(XPathContext context, String input) throws XPathException
-    {
-      return parseGrammar(context, input);
-    }
-  }
-
-  public static abstract class SaxonDefinition extends ExtensionFunctionDefinition
-  {
-    abstract String functionName();
-    abstract Sequence execute(XPathContext context, String input) throws XPathException;
-
-    @Override
-    public StructuredQName getFunctionQName() {return new StructuredQName("p", "de/bottlecaps/railroad/core/Parser", functionName());}
-    @Override
-    public SequenceType[] getArgumentTypes() {return new SequenceType[] {SequenceType.SINGLE_STRING};}
-    @Override
-    public SequenceType getResultType(SequenceType[] suppliedArgumentTypes) {return SequenceType.SINGLE_NODE;}
-
-    @Override
-    public ExtensionFunctionCall makeCallExpression()
-    {
-      return new ExtensionFunctionCall()
-      {
-        @Override
-        public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException
-        {
-          return execute(context, arguments[0].iterate().next().getStringValue());
-        }
-      };
-    }
-  }
-
-  private static void buildError(Parser parser, ParseException pe, Builder builder) throws XPathException
-  {
-    builder.close();
-    builder.reset();
-    builder.open();
-    List<AttributeInfo> attributes = new ArrayList<>();
-    AnySimpleType anySimpleType = AnySimpleType.getInstance();
-    attributes.add(new AttributeInfo(new NoNamespaceName("b"), anySimpleType, Integer.toString(pe.getBegin() + 1), LOCATION, 0));
-    attributes.add(new AttributeInfo(new NoNamespaceName("e"), anySimpleType, Integer.toString(pe.getEnd() + 1), LOCATION, 0));
-    if (pe.getOffending() < 0)
-    {
-      attributes.add(new AttributeInfo(new NoNamespaceName("s"), anySimpleType, Integer.toString(pe.getState()), LOCATION, 0));
-    }
-    else
-    {
-      attributes.add(new AttributeInfo(new NoNamespaceName("o"), anySimpleType, Integer.toString(pe.getOffending()), LOCATION, 0));
-      attributes.add(new AttributeInfo(new NoNamespaceName("x"), anySimpleType, Integer.toString(pe.getExpected()), LOCATION, 0));
-    }
-    builder.startElement(new NoNamespaceName("ERROR"), AnyType.getInstance(), new SmallAttributeMap(attributes), NO_NAMESPACES, LOCATION, 0);
-    builder.characters(StringView.of(parser.getErrorMessage(pe)), LOCATION, 0);
-    builder.endElement();
   }
 
   public Parser(CharSequence string, EventHandler t)
