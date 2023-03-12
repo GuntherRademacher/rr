@@ -8,7 +8,7 @@ import java.util.Map;
 public interface XQueryProcessor {
 
   public static XQueryProcessor defaultXQueryProcessor() {
-    return Saxon.instance;
+    return SaxonXQueryProcessor.instance;
   }
 
   public interface Result {

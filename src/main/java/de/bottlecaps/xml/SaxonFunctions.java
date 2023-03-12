@@ -287,14 +287,14 @@ public class SaxonFunctions extends ExtensionFunctions implements Initializer
               URLConnection connection = new URL(url).openConnection();
               int responseCode = connection instanceof HttpURLConnection ? ((HttpURLConnection) connection).getResponseCode() : 200;
               String resp = "<" + RESPONSE + " xmlns=\"" + HTTPCLIENT_NAMESPACE + "\" status=\"" + responseCode + "\"/>";
-              result.add(Saxon.instance.parseXml(resp, "text/xml").iterateAxis(Axis.CHILD.getAxisNumber()).next());
+              result.add(SaxonXQueryProcessor.instance.parseXml(resp, "text/xml").iterateAxis(Axis.CHILD.getAxisNumber()).next());
               InputStream content = (InputStream) connection.getContent();
               String contentType = connection.getContentType();
-              if (Saxon.isHtml(contentType) || Saxon.isXml(contentType))
+              if (SaxonXQueryProcessor.isHtml(contentType) || SaxonXQueryProcessor.isXml(contentType))
               {
                 StreamSource source = new StreamSource(content);
                 source.setSystemId(url);
-                result.add(Saxon.instance.parseXml(source, contentType));
+                result.add(SaxonXQueryProcessor.instance.parseXml(source, contentType));
               }
               else
               {
@@ -429,7 +429,7 @@ public class SaxonFunctions extends ExtensionFunctions implements Initializer
             try
             {
               String string = arguments[0].head().getStringValue();
-              return Saxon.instance.parseXml(string, "text/xml");
+              return SaxonXQueryProcessor.instance.parseXml(string, "text/xml");
             }
             catch (RuntimeException e)
             {
@@ -616,7 +616,7 @@ public class SaxonFunctions extends ExtensionFunctions implements Initializer
             {
               String className = arguments[0].head().getStringValue();
               String serializedXML = unicodeClassToSerializedXML(className);
-              return Saxon.instance.parseXml(serializedXML, "text/xml");
+              return SaxonXQueryProcessor.instance.parseXml(serializedXML, "text/xml");
             }
             catch (RuntimeException e)
             {

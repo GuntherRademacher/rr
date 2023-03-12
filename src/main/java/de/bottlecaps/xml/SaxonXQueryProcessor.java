@@ -10,11 +10,6 @@ import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.transform.ErrorListener;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import org.xml.sax.EntityResolver;
@@ -29,7 +24,6 @@ import de.bottlecaps.railroad.core.ExtensionFunctions;
 import de.bottlecaps.webapp.Request;
 import de.bottlecaps.webapp.Response;
 import net.sf.saxon.Configuration;
-import net.sf.saxon.jaxp.SaxonTransformerFactory;
 import net.sf.saxon.lib.ParseOptions;
 import net.sf.saxon.om.NodeInfo;
 import net.sf.saxon.s9api.Processor;
@@ -44,21 +38,19 @@ import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmValue;
 import net.sf.saxon.value.ObjectValue;
 
-public class Saxon implements XQueryProcessor, XsltProcessor {
-  public static final Saxon instance = new Saxon();
+public class SaxonXQueryProcessor implements XQueryProcessor {
+  public static final SaxonXQueryProcessor instance = new SaxonXQueryProcessor();
 
   private Configuration configuration = new Configuration();
   private static Processor processor;
   private static XQueryCompiler compiler;
-  private TransformerFactory transformerFactory;
 
-  private Saxon()  {
+  private SaxonXQueryProcessor()  {
     configuration = new Configuration();
     new SaxonFunctions().initialize(configuration);
 
     processor = new Processor(configuration);
     compiler = processor.newXQueryCompiler();
-    transformerFactory = TransformerFactory.newInstance(SaxonTransformerFactory.class.getName(), Saxon.class.getClassLoader());
   }
 
   public static class SaxonResult implements Result {
@@ -109,30 +101,6 @@ public class Saxon implements XQueryProcessor, XsltProcessor {
   @Override
   public Plan compile(String query) throws Exception {
     return new SaxonPlan(compiler.compile(query));
-  }
-
-  @Override
-  public void evaluateXslt(String xslt, Map<String, Object> parameters,
-      OutputStream outputStream) throws Exception {
-
-    StreamSource stylesheet = new StreamSource(new StringReader(xslt));
-    Transformer transformer = transformerFactory.newTransformer(stylesheet);
-    transformer.setErrorListener(new ErrorListener()  {
-
-      @Override
-      public void warning(TransformerException exception) throws TransformerException {
-      }
-
-      @Override
-      public void error(TransformerException exception) throws TransformerException {
-      }
-
-      @Override
-      public void fatalError(TransformerException exception) throws TransformerException {
-      }
-    });
-    parameters.forEach((key, value) -> transformer.setParameter(key, value));
-    transformer.transform(new StreamSource(new StringReader("<input/>")), new StreamResult(outputStream));
   }
 
   private static void bindExternalVariables(XQueryEvaluator evaluator, Map<String, Object> externalVars) {
