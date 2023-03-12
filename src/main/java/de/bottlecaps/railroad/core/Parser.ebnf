@@ -1,5 +1,3 @@
-/* generate: rex -java -tree -saxon -name de.bottlecaps.railroad.Parser Parser.ebnf */
-
 Grammar               ::= ProcessingInstruction*
                           Production+
                           (
