@@ -64,7 +64,7 @@ gradlew
 ## Thanks
 
 This project makes use of
-  * [Saxon-HE][SAXON],
+  * [BaseX][BASEX],
   * [TagSoup][TAGSOUP],
   * [Apache Batik][BATIK],
   * [Ace Editor][ACE],
@@ -83,7 +83,7 @@ The official website for RR is <https://bottlecaps.de/rr/ui>.
 [PYTHON]: https://docs.python.org/3/reference/grammar.html
 [W3C-EBNF]: http://www.w3.org/TR/2010/REC-xquery-20101214/#EBNFNotation
 [CONVERT]: http://bottlecaps.de/convert/
-[SAXON]: http://www.saxonica.com/products/products.xml
+[BASEX]: https://basex.org/
 [TAGSOUP]: https://search.maven.org/artifact/org.ccil.cowan.tagsoup/tagsoup/1.2.1/jar
 [BATIK]: https://xmlgraphics.apache.org/batik/
 [ACE]: https://ace.c9.io/
