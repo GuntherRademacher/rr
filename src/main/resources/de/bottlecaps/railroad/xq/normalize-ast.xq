@@ -208,7 +208,7 @@ declare function n:normalize($nodes as node()*, $charcode-to-char as xs:boolean)
         for $c in n:cases($node)
         let $item := n:wrap-sequence(n:normalize(n:unwrap-sequence($c)))
         return
-          if (not($item/self::g:charCode)) then  
+          if (not($item/self::g:charCode and $charcode-to-char)) then  
             $item
           else
             let $value := c:unhex($item/@value)
