@@ -107,7 +107,7 @@ public class RailroadGenerator
     if (! embedded)
     {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      xhtml.serialize(baos, OutputOptions.XML.value());
+      xhtml.serialize(baos, OutputOptions.XHTML.value());
       new XhtmlToZip().convert(baos.toString(StandardCharsets.UTF_8), textFormat.value, graphicsFormat.name().toLowerCase(), output);
     }
     else if (textFormat == TextFormat.XHTML && graphicsFormat == GraphicsFormat.SVG)
