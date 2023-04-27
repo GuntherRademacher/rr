@@ -620,7 +620,7 @@ declare function b:render-items($nodes as node()*)
  : @param $todo the sequence of nodes to be rendered.
  : @return the rendered result.
  :)
-declare function b:break-lines($done-earlier, $done-last, $todo) as element(ebnf)
+declare function b:break-lines($done-earlier, $done-last, $todo)
 {
   if (empty($todo)) then
     element ebnf
