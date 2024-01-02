@@ -17,7 +17,7 @@ import de.bottlecaps.xml.XQueryProcessor.Result;
 
 public class RailroadGenerator
 {
-  public static final String RR_URL = "https://bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
+  public static final String RR_URL = "https://www.bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
 
   public enum TextFormat
   {
