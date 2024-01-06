@@ -20,7 +20,6 @@ import de.bottlecaps.railroad.webapp.RailroadServer;
 
 public class Railroad
 {
-  private static final String RR_URL = "https://bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
   private static final String COLOR_PATTERN = "#[0-9a-fA-F]{6}";
   private static final String INTEGER_PATTERN = "[0-9]+";
   private static final int DEFAULT_PORT = 8080;
@@ -264,7 +263,7 @@ public class Railroad
     out.println();
     out.println("  version " + RailroadVersion.VERSION);
     out.println("  released " + RailroadVersion.DATE);
-    out.println("  from " + RR_URL);
+    out.println("  from " + RailroadGenerator.RR_URL);
     out.println();
     out.println("Usage: java " + jar + file + " {OPTION}... GRAMMAR");
     out.println("    or java " + jar + file + " -gui [-port:PORT]");

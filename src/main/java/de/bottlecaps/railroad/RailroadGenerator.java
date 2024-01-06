@@ -17,7 +17,7 @@ import de.bottlecaps.xml.XQueryProcessor.Result;
 
 public class RailroadGenerator
 {
-  public static final String RR_URL = "https://bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
+  public static final String RR_URL = "https://www.bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
 
   public enum TextFormat
   {
@@ -58,7 +58,7 @@ public class RailroadGenerator
 
   /**
    * @param grammar input grammar in W3C EBNF notation
-   * @throws Exception
+   * @throws Exception exception
    */
   public void generate(String grammar) throws Exception
   {
