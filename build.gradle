@@ -13,7 +13,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.1'
+version = '2.2-SNAPSHOT'
 group = 'de.bottlecaps.rr'
 def buildTime = new Date()
 def aceVersion = '1.32.3'
@@ -193,7 +193,7 @@ void configureMetadata(MavenPublication mavenPublication) {
         pom {
             name = groupId + ':' + artifactId
             description = 'Railroad diagram generator'
-            url = 'https://bottlecaps.de/rr/ui'
+            url = 'https://www.bottlecaps.de/rr/ui'
             licenses {
                 license {
                     name = 'Apache-2.0'
@@ -205,7 +205,7 @@ void configureMetadata(MavenPublication mavenPublication) {
                     name = 'Gunther Rademacher'
                     email = 'grd@gmx.net'
                     organization = 'Gunther Rademacher'
-                    organizationUrl = 'https://bottlecaps.de/'
+                    organizationUrl = 'https://www.bottlecaps.de/'
                 }
             }
             scm {
