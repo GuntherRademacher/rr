@@ -82,7 +82,7 @@ The official website for RR is <https://www.bottlecaps.de/rr/ui>.
 [ASL]: http://www.apache.org/licenses/LICENSE-2.0
 [PYTHON]: https://docs.python.org/3/reference/grammar.html
 [W3C-EBNF]: http://www.w3.org/TR/2010/REC-xquery-20101214/#EBNFNotation
-[CONVERT]: http://www.bottlecaps.de/convert/
+[CONVERT]: http://www.bottlecaps.de/ebnf-convert/
 [SAXON]: http://www.saxonica.com/products/products.xml
 [TAGSOUP]: https://search.maven.org/artifact/org.ccil.cowan.tagsoup/tagsoup/1.2.1/jar
 [BATIK]: https://xmlgraphics.apache.org/batik/
