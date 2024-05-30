@@ -69,8 +69,10 @@ public enum BaseXXQueryProcessor implements XQueryProcessor {
 
   private static void bindExternalVariables(QueryProcessor proc, Map<String, Object> externalVars) throws QueryException {
     for (Map.Entry<String, Object> externalVar : externalVars.entrySet()) {
-      String name = externalVar.getKey();
       Object value = externalVar.getValue();
+      String name = externalVar.getKey();
+      if (name.startsWith("{"))
+        name = "Q" + name;
       if (value instanceof BaseXResult)
         proc.variable(name, ((BaseXResult) value).result);
       else
