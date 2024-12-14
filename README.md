@@ -24,15 +24,14 @@ Here are two examples of generated diagrams (taken from the [Python grammar][PYT
 
 RR accepts grammars in [W3C-style EBNF][W3C-EBNF]. Some other representations, including
 some parser generator input notations, can be converted to W3C-style using
-the [ebnf-convert][CONVERT] Grammar Converter (note: IPv6-only). This tool
+the [ebnf-convert][CONVERT] Grammar Converter. This tool
 is also available [on GitHub][CONVERT-GITHUB].
 
 # Distribution
 
 RR comes as a .zip, containing a .war file. The .war file can be deployed
 in servlet containers like Tomcat or Jetty for serving the GUI. This makes up the webapp
-that is running on the original website, <https://www.bottlecaps.de/rr/ui>
-(note: IPv6-only, see [Links][LINKS] below for alternatives).
+that is running on the original website, <https://www.bottlecaps.de/rr/ui>.
 
 The .war file is a Java "executable war", i.e. it can also be started
 standalone from command line. Two different tasks can be performed in standalone mode:
@@ -79,9 +78,9 @@ RR is released under the [Apache 2 License][ASL].
 
 ## Links
 
-The official website for RR is <https://www.bottlecaps.de/rr/ui> (note: IPv6-only).
+The official website for RR is <https://www.bottlecaps.de/rr/ui>.
 
-Thanks to [Vinay Sajip][VINAY], RR also runs on <https://rr.red-dove.com/ui> (IPv4 accessible).
+Thanks to [Vinay Sajip][VINAY], RR also runs on <https://rr.red-dove.com/ui>.
 
 [ASL]: http://www.apache.org/licenses/LICENSE-2.0
 [PYTHON]: https://docs.python.org/3/reference/grammar.html
@@ -95,4 +94,4 @@ Thanks to [Vinay Sajip][VINAY], RR also runs on <https://rr.red-dove.com/ui> (IP
 [GRADLE]: https://gradle.org/
 [GRADLE-LICENSE-REPORT]: https://github.com/jk1/Gradle-License-Report
 [VINAY]: https://github.com/vsajip
-[LINKS]: #links
+
