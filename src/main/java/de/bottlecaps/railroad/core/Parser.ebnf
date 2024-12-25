@@ -22,7 +22,7 @@ Alternatives          ::= Alternative
                           )?
 Alternative           ::= SequenceOrDifference ('&' Item)?
 SequenceOrDifference  ::= (Item ( '-' Item | Item* ))?
-Item                  ::= Primary ( '?' | '*' | '+' )*
+Item                  ::= Primary ( '?' | '*' | '+' )?
 Primary               ::= NameOrString
                         | ProcessingInstruction
                         | CharCode

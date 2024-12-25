@@ -174,10 +174,13 @@ declare function b:render-compound($compound as element(),
                                    $original as element())
 {
   let $items := b:subitems($compound)
-  let $need-parenthesis := count($items) != 1
-                       and ($occurrence-indicator
-                         or $original/parent::g:subtract
-                         or $original is $original/parent::g:context/*[2])
+  let $not-single := count($items) ne 1
+  let $need-parenthesis := $not-single and $occurrence-indicator
+                        or $not-single and $original/parent::g:subtract
+                        or $not-single and $original is $original/parent::g:context/*[2]
+                        or $occurrence-indicator and $items/self::g:optional
+                        or $occurrence-indicator and $items/self::g:zeroOrMore
+                        or $occurrence-indicator and $items/self::g:oneOrMore
   let $rendered :=
   (
     text{"("}[$need-parenthesis],
