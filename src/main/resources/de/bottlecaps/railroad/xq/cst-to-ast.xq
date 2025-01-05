@@ -94,30 +94,50 @@ declare function a:ast($nodes as node()*) as node()*
         a:ast($node/*[not(self::TOKEN)])
     case element(Item) return
       a:closure(a:ast($node/Primary), $node/TOKEN)
-    case element(SequenceOrDifference) return
-      if ($node/TOKEN = "-") then
+    case element(CompositeExpression) return
+      switch ($node/TOKEN)
+      case "-" return
         element g:subtract
         {
           for $i in $node/Item
           let $ast := a:ast($i)
           return if (count($ast) = 1) then $ast else element g:sequence {$ast}
         }
-      else
+      case "**" return
+        element g:optional
+        {
+          a:ast($node/Item[1]),
+          element g:zeroOrMore
+          {
+            a:ast($node/Item[2]),
+            a:ast($node/Item[1])
+          }
+        }
+      case "++" return
+        (
+          a:ast($node/Item[1]),
+          element g:zeroOrMore
+          {
+            a:ast($node/Item[2]),
+            a:ast($node/Item[1])
+          }
+        )
+      default return
         a:ast($node/Item)
     case element(Choice) return
-      if (count($node/SequenceOrDifference) = 1) then
-        a:ast($node/SequenceOrDifference)
+      if (count($node/CompositeExpression) = 1) then
+        a:ast($node/CompositeExpression)
       else if ($node/TOKEN = "|") then
           element g:choice
           {
-            for $s in $node/SequenceOrDifference
+            for $s in $node/CompositeExpression
             let $ast := a:ast($s)
             return if (count($ast) = 1) then $ast else element g:sequence {$ast}
           }
       else
           element g:orderedChoice
           {
-            for $s in $node/SequenceOrDifference
+            for $s in $node/CompositeExpression
             let $ast := a:ast($s)
             return if (count($ast) = 1) then $ast else element g:sequence {$ast}
           }
@@ -130,7 +150,7 @@ declare function a:ast($nodes as node()*) as node()*
           return if (count($ast) = 1) then $ast else element g:sequence {$ast}
         }
       else
-        a:ast($node/SequenceOrDifference)
+        a:ast($node/CompositeExpression)
     case element(Alternatives) return
       if (count($node/Alternative) = 1) then
         a:ast($node/Alternative)

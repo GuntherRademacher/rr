@@ -20,8 +20,13 @@ Alternatives          ::= Alternative
                           ( ( '|' Alternative )+
                           | ( '/' Alternative )+
                           )?
-Alternative           ::= SequenceOrDifference ('&' Item)?
-SequenceOrDifference  ::= (Item ( '-' Item | Item* ))?
+Alternative           ::= CompositeExpression ( '&' Item )?
+CompositeExpression   ::= ( Item ( '-' Item
+                                 | '**' Item
+                                 | '++' Item
+                                 | Item*
+                                 )
+                          )?
 Item                  ::= Primary ( '?' | '*' | '+' )?
 Primary               ::= NameOrString
                         | ProcessingInstruction
@@ -30,9 +35,9 @@ Primary               ::= NameOrString
                         | '$'
                         | '.'
                         | '(' Choice ')'
-Choice                ::= SequenceOrDifference
-                          ( ( '|' SequenceOrDifference )+
-                          | ( '/' SequenceOrDifference )+
+Choice                ::= CompositeExpression
+                          ( ( '|' CompositeExpression )+
+                          | ( '/' CompositeExpression )+
                           )?
 NameOrString          ::= NCName Context?
                         | StringLiteral Context?
