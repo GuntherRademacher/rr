@@ -62,6 +62,13 @@ project folder, run this command to build the distribution .zip file:
 gradlew
 ```
 
+## RR on Maven Central
+
+RR is available on Maven Central with groupId `de.bottlecaps.rr` and artifactIds
+
+ -  [`rr-webapp`][rr-webapp] for `rr.war`,
+ -  [`rr-lib`][rr-lib] for `rr.jar`, which can be added to other projects as a dependency.
+
 ## Thanks
 
 This project makes use of
@@ -72,9 +79,9 @@ This project makes use of
   * [Gradle][GRADLE], and
   * [Gradle-License-Report][GRADLE-LICENSE-REPORT].
 
-## License
+# License
 
-RR is released under the [Apache 2 License][ASL].
+Copyright (c) 2010-2025 Gunther Rademacher. RR is provided under the [Apache 2 License][ASL].
 
 ## Links
 
@@ -94,4 +101,5 @@ Thanks to [Vinay Sajip][VINAY], RR also runs on <https://rr.red-dove.com/ui>.
 [GRADLE]: https://gradle.org/
 [GRADLE-LICENSE-REPORT]: https://github.com/jk1/Gradle-License-Report
 [VINAY]: https://github.com/vsajip
-
+[rr-webapp]: https://central.sonatype.com/artifact/de.bottlecaps.rr/rr-webapp
+[rr-lib]: https://central.sonatype.com/artifact/de.bottlecaps.rr/rr-lib

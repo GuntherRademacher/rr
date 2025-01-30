@@ -5,7 +5,7 @@
 plugins {
     id 'java'
     id 'war'
-    id 'com.github.jk1.dependency-license-report' version '2.5'
+    id 'com.github.jk1.dependency-license-report' version '2.9'
     id 'maven-publish'
     id 'signing'
 }
@@ -13,10 +13,10 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.2-basex-SNAPSHOT'
+version = '2.2-basex'
 group = 'de.bottlecaps.rr'
 def buildTime = new Date()
-def aceVersion = '1.32.3'
+def aceVersion = '1.37.1'
 
 def generatedSrc = "$buildDir/generated-src/main"
 
@@ -44,13 +44,13 @@ configurations {
 dependencies {
     ace "org.webjars.npm:ace-builds:$aceVersion"
 
-    compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.97'
+    compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
 
     implementation 'org.basex:basex:11.6'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
-    implementation 'org.apache.xmlgraphics:batik-all:1.17'
+    implementation 'org.apache.xmlgraphics:batik-all:1.18'
     implementation 'xml-apis:xml-apis-ext:1.3.04'
-    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.8'
+    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.10'
 }
 
 configurations.all {
@@ -246,6 +246,7 @@ publishing {
 }
 
 signing {
+    useGpgCmd()
     sign publishing.publications.jar
     sign publishing.publications.war
 }
