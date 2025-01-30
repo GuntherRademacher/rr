@@ -1,4 +1,4 @@
-// This file was generated on Sun Jan 5, 2025 21:16 (UTC+01) by REx v6.1-SNAPSHOT which is Copyright (c) 1979-2025 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Thu Jan 30, 2025 12:55 (UTC+01) by REx v6.1 which is Copyright (c) 1979-2025 by Gunther Rademacher <grd@gmx.net>
 // REx command line: -tree -a none -java -saxon -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
