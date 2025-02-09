@@ -20,7 +20,7 @@ Alternatives          ::= Alternative
                           ( ( '|' Alternative )+
                           | ( '/' Alternative )+
                           )?
-Alternative           ::= CompositeExpression ( '&' Item )?
+Alternative           ::= CompositeExpression ( '&' CompositeExpression )?
 CompositeExpression   ::= ( Item ( '-' Item
                                  | '**' Item
                                  | '++' Item
