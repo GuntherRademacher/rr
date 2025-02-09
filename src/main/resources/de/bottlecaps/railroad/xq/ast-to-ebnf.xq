@@ -310,7 +310,7 @@ declare function b:render-context($context as element(g:context))
   (
     $lhs,
     $rhs[position() < $first],
-    element fragment {text{"&amp;"}, $rhs[$first]},
+    element fragment {text{"&amp; "}, $rhs[$first]},
     $rhs[position() > $first]
   )
 };
