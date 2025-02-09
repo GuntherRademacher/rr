@@ -177,7 +177,6 @@ declare function b:render-compound($compound as element(),
   let $not-single := count($items) ne 1
   let $need-parenthesis := $not-single and $occurrence-indicator
                         or $not-single and $original/parent::g:subtract
-                        or $not-single and $original is $original/parent::g:context/*[2]
                         or $occurrence-indicator and $items/self::g:optional
                         or $occurrence-indicator and $items/self::g:zeroOrMore
                         or $occurrence-indicator and $items/self::g:oneOrMore
@@ -279,7 +278,7 @@ declare function b:render-subtract($subtract as element(g:subtract))
                 or $parent/self::g:oneOrMore
                 or $parent/self::g:zeroOrMore
                 or $parent/self::g:subtract
-                or $parent[not(self::g:choice) and count((element(), processing-instruction())) != 1]
+                or $parent[not(self::g:choice) and not(self::g:context) and count((element(), processing-instruction())) != 1]
   return
   (
     "("[$embedded],
