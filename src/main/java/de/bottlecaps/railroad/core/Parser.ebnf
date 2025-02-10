@@ -15,7 +15,7 @@ Grammar               ::= ProcessingInstruction*
                           EOF
 ProcessingInstruction ::= '<?' NCName (S+ ProcessingInstructionContents)? '?>'
                           /* ws: explicit */
-Production            ::= DocComment? NCName '?'? '::=' ( Alternatives | Link ) Option?
+Production            ::= DocComment? ( NCName | '.' ) '?'? '::=' ( Alternatives | Link ) Option?
 Alternatives          ::= Alternative
                           ( ( '|' Alternative )+
                           | ( '/' Alternative )+
