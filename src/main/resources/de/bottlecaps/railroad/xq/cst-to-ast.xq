@@ -188,7 +188,7 @@ declare function a:ast($nodes as node()*) as node()*
     case element(Production) return
       element g:production
       {
-        attribute name {$node/NCName},
+        attribute name {($node/NCName, $node/TOKEN[. eq "."])[1]},
         attribute nongreedy {true()}[$node/TOKEN = "?"],
         attribute whitespace-spec {"explicit"  }[contains($node/Option, "explicit"  )],
         attribute whitespace-spec {"definition"}[contains($node/Option, "definition")],
