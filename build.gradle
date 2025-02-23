@@ -13,10 +13,10 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.3-SNAPSHOT'
+version = '2.3'
 group = 'de.bottlecaps.rr'
 def buildTime = new Date()
-def aceVersion = '1.37.1'
+def aceVersion = '1.38.0'
 
 def generatedSrc = "$buildDir/generated-src/main"
 
