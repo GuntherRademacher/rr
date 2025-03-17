@@ -385,6 +385,7 @@ declare function n:no-sequence($node as node())
         self::g:charRange or
         self::g:charCode or
         self::g:charCodeRange or
+        self::g:complement or
         self::g:string or
         self::g:subtract] or
   $node/self::g:choice and (every $case in $node/* satisfies n:no-sequence($case)) or
