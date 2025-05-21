@@ -15,14 +15,20 @@ import de.bottlecaps.railroad.core.OutputOptions;
 import de.bottlecaps.railroad.core.XhtmlToZip;
 import de.bottlecaps.xml.XQueryProcessor.Result;
 
+/** This class provides the RR API. */
 public class RailroadGenerator
 {
+  /** URL to the online railroad diagram generator. */
   public static final String RR_URL = "https://www.bottlecaps.de/" + RailroadVersion.PROJECT_NAME;
 
+  /** Text formats. */
   public enum TextFormat
   {
+    /** XHTML text format. */
     XHTML("xhtml", OutputOptions.XHTML),
+    /** HTML text format. */
     HTML("html", OutputOptions.HTML),
+    /** Markdown text format. */
     MARKDOWN("md", OutputOptions.TEXT);
 
     private final String value;
@@ -35,9 +41,12 @@ public class RailroadGenerator
     }
   };
 
+  /** Graphics formats. */
   public enum GraphicsFormat
   {
+    /** SVG graphics format. */
     SVG,
+    /** PNG graphics format. */
     PNG,
   };
 
@@ -56,7 +65,12 @@ public class RailroadGenerator
   private Integer strokeWidth;
   private Integer width;
 
+  /** Default constructor. */
+  public RailroadGenerator() {
+  }
+
   /**
+   * Generate a railroad diagram from the given grammar.
    * @param grammar input grammar in W3C EBNF notation
    * @throws Exception exception
    */
@@ -140,6 +154,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the output stream.
    * @param output output stream, defaults to {@code System.out}
    */
   public void setOutput(OutputStream output)
@@ -148,6 +163,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the text output format.
    * @param textFormat format of text output, defaults to {@link TextFormat#XHTML}
    */
   public void setTextFormat(TextFormat textFormat)
@@ -159,6 +175,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the graphics output format.
    * @param graphicsFormat format of graphics output, defaults to {@link GraphicsFormat#SVG}
    */
   public void setGraphicsFormat(GraphicsFormat graphicsFormat)
@@ -170,6 +187,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets whether to embed graphics in text, in a single output file.
    * @param embedded whether to embed graphics in text, in a single output file. Defaults to {@code true}.
    * When {@code false}, the output will be a zip with text output and graphics in separate files.
    */
@@ -179,6 +197,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets whether to show EBNF next to generated diagrams.
    * @param showEbnf whether to show EBNF next to generated diagrams, defaults to {@code true}
    */
   public void setShowEbnf(boolean showEbnf)
@@ -187,6 +206,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets whether to enable left and right factoring.
    * @param factoring whether to enable left and right factoring, defaults to {@code true}.
    */
   public void setFactoring(boolean factoring)
@@ -195,6 +215,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets whether to enable direct recursion elimination.
    * @param recursionElimination whether to enable direct recursion elimination, defaults to {@code true}
    */
   public void setRecursionElimination(boolean recursionElimination)
@@ -203,6 +224,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets whether to inline nonterminals that derive to single literals.
    * @param inlineLiterals whether to inline nonterminals that derive to single literals, defaults to {@code true}.
    */
   public void setInlineLiterals(boolean inlineLiterals)
@@ -211,6 +233,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets whether to keep nonterminal references that derive to epsilon (nothing) only.
    * @param keepEpsilon whether to keep nonterminal references that derive to epsilon (nothing) only, defaults to {@code true}.
    */
   public void setKeepEpsilon(boolean keepEpsilon)
@@ -219,6 +242,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the base color to use.
    * @param baseColor the base color to use, defaults to {@code RGB 255,219,77} / {@code HSL 48,100%,65%}
    */
   public void setBaseColor(Color baseColor)
@@ -227,6 +251,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the hue offset to secondary color in degrees.
    * @param colorOffset hue offset to secondary color in degrees, defaults to {@code 0}
    */
   public void setColorOffset(int colorOffset)
@@ -235,6 +260,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the padding to apply.
    * @param padding padding to apply, defaults to {@code 10}
    */
   public void setPadding(int padding)
@@ -243,6 +269,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the stroke width to apply.
    * @param strokeWidth stroke width to set, defaults to {@code 1}
    */
   public void setStrokeWidth(int strokeWidth)
@@ -251,6 +278,7 @@ public class RailroadGenerator
   }
 
   /**
+   * Sets the width of the graphics.
    * @param width if exceeded, generator tries to break graphics into multiple lines; defaults to {@code 992}
    */
   public void setWidth(int width)
