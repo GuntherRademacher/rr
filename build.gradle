@@ -13,7 +13,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.5-SNAPSHOT'
+version = '2.5'
 group = 'de.bottlecaps.rr'
 
 def project_name = "$project.name"
