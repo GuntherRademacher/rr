@@ -13,10 +13,12 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.4-basex'
+version = '2.5-basex'
 group = 'de.bottlecaps.rr'
+
+def project_name = "$project.name"
 def buildTime = new Date()
-def aceVersion = '1.38.0'
+def aceVersion = '1.41.0'
 
 def generatedSrc = "$buildDir/generated-src/main"
 
@@ -46,15 +48,19 @@ dependencies {
 
     compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
 
-    implementation 'org.basex:basex:11.6'
+    implementation 'org.basex:basex:12.0-SNAPSHOT'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
-    implementation 'org.apache.xmlgraphics:batik-all:1.18'
+    implementation('org.apache.xmlgraphics:batik-all:1.19') {
+        exclude group: 'xml-apis', module: 'xml-apis'
+    }
     implementation 'xml-apis:xml-apis-ext:1.3.04'
-    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.10'
+    implementation 'org.apache.xmlgraphics:xmlgraphics-commons:2.11'
 }
 
-configurations.all {
-    transitive = false
+configurations {
+    runtimeClasspath {
+        transitive = false
+    }
 }
 
 jar {
@@ -92,7 +98,7 @@ task generateSrc {
 
 public class RailroadVersion
 {
-  public static final String PROJECT_NAME = "$project.name";
+  public static final String PROJECT_NAME = "$project_name";
   public static final String VERSION = "$version";
   public static final String DATE = "${new java.text.SimpleDateFormat("MMM dd, yyyy", Locale.US).format(buildTime)}";
 }
@@ -104,6 +110,10 @@ public class RailroadVersion
 compileJava {
     dependsOn generateSrc
     options.release = 11
+}
+
+javadoc {
+    include 'de/bottlecaps/railroad/RailroadGenerator.java'
 }
 
 java {

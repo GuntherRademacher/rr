@@ -54,7 +54,7 @@ For listing the full set of available options, run
 ```
 without further command line arguments.
 
-## Building RR
+# Building RR
 For building RR, JDK 11 (or higher) must be available. In the
 project folder, run this command to build the distribution .zip file:
 
@@ -62,14 +62,14 @@ project folder, run this command to build the distribution .zip file:
 gradlew
 ```
 
-## RR on Maven Central
+# RR on Maven Central
 
 RR is available on Maven Central with groupId `de.bottlecaps.rr` and artifactIds
 
  -  [`rr-webapp`][rr-webapp] for `rr.war`,
  -  [`rr-lib`][rr-lib] for `rr.jar`, which can be added to other projects as a dependency.
 
-## Thanks
+# Thanks
 
 This project makes use of
   * [BaseX][BASEX],
@@ -83,11 +83,9 @@ This project makes use of
 
 Copyright (c) 2010-2025 Gunther Rademacher. RR is provided under the [Apache 2 License][ASL].
 
-## Links
+# Links
 
 The official website for RR is <https://www.bottlecaps.de/rr/ui>.
-
-Thanks to [Vinay Sajip][VINAY], RR also runs on <https://rr.red-dove.com/ui>.
 
 [ASL]: http://www.apache.org/licenses/LICENSE-2.0
 [PYTHON]: https://docs.python.org/3/reference/grammar.html
@@ -100,6 +98,5 @@ Thanks to [Vinay Sajip][VINAY], RR also runs on <https://rr.red-dove.com/ui>.
 [ACE]: https://ace.c9.io/
 [GRADLE]: https://gradle.org/
 [GRADLE-LICENSE-REPORT]: https://github.com/jk1/Gradle-License-Report
-[VINAY]: https://github.com/vsajip
 [rr-webapp]: https://central.sonatype.com/artifact/de.bottlecaps.rr/rr-webapp
 [rr-lib]: https://central.sonatype.com/artifact/de.bottlecaps.rr/rr-lib

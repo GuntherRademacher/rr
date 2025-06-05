@@ -150,7 +150,12 @@ declare function r:is-left-recursive($node as element()?) as xs:boolean
     return
       if ($node/self::g:ref) then
         empty($node/@context) and $node/@name eq $production/@name and
-        (every $ancestor in $node/ancestor-or-self::*[. >> $production and not(parent::g:choice)] satisfies not($ancestor/self::g:oneOrMore) and not($ancestor/self::g:zeroOrMore) and empty($ancestor/preceding-sibling::*))
+        (every $ancestor in $node/ancestor-or-self::*[. >> $production and not(parent::g:choice)]
+         satisfies not($ancestor/self::g:oneOrMore) 
+               and not($ancestor/self::g:zeroOrMore) and empty($ancestor/preceding-sibling::*)) and
+        (some $ancestor in $node/ancestor-or-self::*[. >> $production and not(parent::g:choice)]
+         satisfies not($ancestor/self::g:oneOrMore) 
+               and not($ancestor/self::g:zeroOrMore) and exists($ancestor/following-sibling::*))
       else if ($node/self::g:choice) then
         some $case in $node/* satisfies r:is-left-recursive($case)
       else if (not($node/self::g:production or $node/self::g:sequence or $node/self::g:optional)) then
@@ -174,7 +179,12 @@ declare function r:is-right-recursive($node as element()?) as xs:boolean
     return
       if ($node/self::g:ref) then
         empty($node/@context) and $node/@name eq $production/@name and
-        (every $ancestor in $node/ancestor-or-self::*[. >> $production and not(parent::g:choice)] satisfies not($ancestor/self::g:oneOrMore) and not($ancestor/self::g:zeroOrMore) and empty($ancestor/following-sibling::*))
+        (every $ancestor in $node/ancestor-or-self::*[. >> $production and not(parent::g:choice)]
+         satisfies not($ancestor/self::g:oneOrMore)
+               and not($ancestor/self::g:zeroOrMore) and empty($ancestor/following-sibling::*)) and
+        (some $ancestor in $node/ancestor-or-self::*[. >> $production and not(parent::g:choice)]
+         satisfies not($ancestor/self::g:oneOrMore)
+               and not($ancestor/self::g:zeroOrMore) and exists($ancestor/preceding-sibling::*))
       else if ($node/self::g:choice) then
         some $case in $node/* satisfies r:is-right-recursive($case)
       else if (not($node/self::g:production or $node/self::g:sequence or $node/self::g:optional)) then
