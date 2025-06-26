@@ -13,7 +13,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.5-basex'
+version = '2.6-basex-SNAPSHOT'
 group = 'de.bottlecaps.rr'
 
 def project_name = "$project.name"
@@ -48,7 +48,7 @@ dependencies {
 
     compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
 
-    implementation 'org.basex:basex:12.0-SNAPSHOT'
+    implementation 'org.basex:basex:12.0'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
     implementation('org.apache.xmlgraphics:batik-all:1.19') {
         exclude group: 'xml-apis', module: 'xml-apis'
@@ -231,13 +231,10 @@ void configureMetadata(MavenPublication mavenPublication) {
 publishing {
     repositories {
         maven {
-            def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            name = 'local'
+            def releaseRepo = layout.buildDirectory.dir('repo/releases')
+            def snapshotRepo = layout.buildDirectory.dir('repo/snapshots')
             url = isReleaseVersion ? releaseRepo : snapshotRepo
-            credentials {
-                username = project.hasProperty('ossrhUsername') ? ossrhUsername : "Unknown user"
-                password = project.hasProperty('ossrhPassword') ? ossrhPassword : "Unknown password"
-            }
         }
     }
 
@@ -260,6 +257,16 @@ signing {
     sign publishing.publications.jar
     sign publishing.publications.war
 }
+
 tasks.withType(Sign) {
     onlyIf { isReleaseVersion }
 }
+
+tasks.register('createBundle', Zip) {
+    dependsOn 'publishAllPublicationsToLocalRepository'
+    from publishing.repositories.local.url
+    archiveFileName = "${project.name}-${project.version}-bundle.zip"
+    destinationDirectory = layout.buildDirectory.dir('bundles')
+}
+
+publish.finalizedBy createBundle
