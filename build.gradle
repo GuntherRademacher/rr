@@ -109,7 +109,7 @@ public class RailroadVersion
 
 compileJava {
     dependsOn generateSrc
-    options.release = 11
+    options.release = 17
 }
 
 javadoc {
