@@ -379,6 +379,19 @@ declare function c:relative-color($color, $s, $l)
   (: " /* r-c(", substring($color, 2), ", ", string($s), ",", string($l), ") hsl(", string($h), ",", string($ss), ",", string($ll), ") */" :)
 };
 
+(:~
+ : Computes the perceived brightness of a color in RGB space.
+ :
+ : This function applies the ITU-R BT.601 luminance formula,
+ : weighting the red, green, and blue components according to
+ : human visual sensitivity (0.299, 0.587, 0.114). The result
+ : is a single brightness value that can be used, for example,
+ : in grayscale conversion or contrast checking.
+ :
+ : @param $rgb A sequence of three decimal values representing
+ :             the red, green, and blue components of the color.
+ : @return The perceived brightness of the color.
+ :)
 declare function c:brightness($rgb as xs:decimal+) as xs:decimal
 {
   ($rgb[1] * 299 + $rgb[2] * 587 + $rgb[3] * 114) div 1000
