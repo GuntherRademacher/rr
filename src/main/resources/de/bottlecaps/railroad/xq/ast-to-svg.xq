@@ -114,7 +114,7 @@ declare function s:color-1($color as xs:string) {$color};
 declare function s:color-regexp($color as xs:string, $spread as xs:integer)
 {
   if ($spread eq 0) then
-    c:relative-color($color, 1.0, 0.89)
+    c:relative-color($color, 1.0, $c:diagram-lightness?regexp?background)
   else
     let $hsl := c:rgb-to-hsl($color)
     return s:color-1(c:rgb(c:hsl-to-rgb(($hsl[1] + 2 * $spread) mod 360, $hsl[2], $hsl[3])))
@@ -130,7 +130,7 @@ declare function s:color-regexp($color as xs:string, $spread as xs:integer)
 declare function s:color-nonterminal($color as xs:string, $spread as xs:integer)
 {
   if ($spread eq 0) then
-    c:relative-color($color, 1.0, 0.81)
+    c:relative-color($color, 1.0, $c:diagram-lightness?nonterminal?background)
   else
     let $hsl := c:rgb-to-hsl($color)
     return s:color-1(c:rgb(c:hsl-to-rgb(($hsl[1] + $spread) mod 360, $hsl[2], $hsl[3])))
@@ -150,7 +150,7 @@ declare function s:color-5($color as xs:string) {c:relative-color($color, 1.0, 0
  : @param $color the base color code.
  : @return the rgb color string.
  :)
-declare function s:color-text-terminal($color as xs:string) {c:relative-color($color, 1.0, 0.04)};
+declare function s:color-text-terminal($color as xs:string) {c:relative-color($color, 1.0, $c:diagram-lightness?terminal?text)};
 
 (:~
  : The text color for nonterminal rectangles.
@@ -162,7 +162,7 @@ declare function s:color-text-terminal($color as xs:string) {c:relative-color($c
 declare function s:color-text-nonterminal($color as xs:string, $spread as xs:integer)
 {
   if ($spread eq 0) then
-    c:relative-color($color, 1.0, 0.05)
+    c:relative-color($color, 1.0, $c:diagram-lightness?nonterminal?text)
   else
     let $hsl := c:rgb-to-hsl($color)
     return s:color-text-terminal(c:rgb(c:hsl-to-rgb(($hsl[1] + $spread) mod 360, $hsl[2], $hsl[3])))
@@ -178,7 +178,7 @@ declare function s:color-text-nonterminal($color as xs:string, $spread as xs:int
 declare function s:color-text-regexp($color as xs:string, $spread as xs:integer)
 {
   if ($spread eq 0) then
-    c:relative-color($color, 1.0, 0.06)
+    c:relative-color($color, 1.0, $c:diagram-lightness?regexp?text)
   else
     let $hsl := c:rgb-to-hsl($color)
     return s:color-text-terminal(c:rgb(c:hsl-to-rgb(($hsl[1] + 2 * $spread) mod 360, $hsl[2], $hsl[3])))

@@ -4,11 +4,6 @@
 module namespace c = "de/bottlecaps/railroad/xq/color.xq";
 
 (:~
- : The pattern to identify color codes.
- :)
-declare variable $c:color-pattern := "^#[0-9A-Fa-f]{6}[^0-9A-Fa-f]?";
-
-(:~
  : The default saturation.
  :)
 declare variable $c:default-saturation := 1.0;
@@ -17,6 +12,15 @@ declare variable $c:default-saturation := 1.0;
  : The default lightness.
  :)
 declare variable $c:default-lightness := 0.65;
+
+(:~
+ : Lightness values of diagram boxes.
+ :)
+declare variable $c:diagram-lightness := map {
+   "terminal": map {"text": 0.04, "background": $c:default-lightness},
+"nonterminal": map {"text": 0.05, "background": 0.81},
+     "regexp": map {"text": 0.06, "background": 0.89}
+};
 
 (:~
  : CSS3 colors as per http://www.w3.org/TR/css3-color/#svg-color
@@ -174,7 +178,7 @@ declare variable $c:debug as xs:boolean := false();
  : @param $d the hexadecimal digit.
  : @return the corresponding string value.
  :)
-declare function c:nibble($d) as xs:string
+declare %private function c:nibble($d) as xs:string
 {
   substring("0123456789ABCDEF", $d + 1, 1)
 };
@@ -186,7 +190,7 @@ declare function c:nibble($d) as xs:string
  : @param $c the numeric color code.
  : @return the color code as a two digit hexadecimal string.
  :)
-declare function c:single-color-code($c) as xs:string
+declare %private function c:single-color-code($c) as xs:string
 {
   let $c := max((0, min((255, xs:integer(255 * $c + 0.5)))))
   return concat(c:nibble(floor($c div 16)), c:nibble($c mod 16))
@@ -240,7 +244,7 @@ declare function c:rgb($rgb as xs:decimal+) as xs:string
  : @param $h the h value.
  : @return a single color value.
  :)
-declare function c:hue-to-rgb($m1, $m2, $h)
+declare %private function c:hue-to-rgb($m1, $m2, $h)
 {
   let $h := if ($h < 0) then $h + 1 else if ($h > 1) then $h - 1 else $h
   return
@@ -277,31 +281,27 @@ declare function c:hue-to-rgb($m1, $m2, $h)
  : @param $color the color code.
  : @param $s the saturation value.
  : @param $l the lightness value.
- : @return the RGB value for CSS or HTML use (7 chars).
+ : @return the R, G, and B values.
  :)
 declare function c:hsl-to-rgb($color, $s, $ll)
 {
-  let $ll := if ($color ge 0) then $ll else 1 - 0.8 * $ll
-  let $color := if ($color ge 0) then $color else -1 - $color
-  return
-    if ($s = 0 or $color >= 360) then
-      ($ll, $ll, $ll)
-    else
-      let $h := $color div 360
-
-      let $m2 :=
-        if ($ll <= 0.5) then
-          $ll * ($s + 1)
-        else
-          $ll + $s - $ll * $s
-      let $m1 := $ll * 2 - $m2
-      let $r := c:hue-to-rgb($m1, $m2, $h + 1 div 3)
-      let $g := c:hue-to-rgb($m1, $m2, $h)
-      let $b := c:hue-to-rgb($m1, $m2, $h - 1 div 3)
-      return ($r, $g, $b)
+  if ($s = 0 or $color >= 360) then
+    ($ll, $ll, $ll)
+  else
+    let $h := $color div 360
+     let $m2 :=
+      if ($ll <= 0.5) then
+        $ll * ($s + 1)
+      else
+        $ll + $s - $ll * $s
+    let $m1 := $ll * 2 - $m2
+    let $r := c:hue-to-rgb($m1, $m2, $h + 1 div 3)
+    let $g := c:hue-to-rgb($m1, $m2, $h)
+    let $b := c:hue-to-rgb($m1, $m2, $h - 1 div 3)
+    return ($r, $g, $b)
 };
 
-declare function c:unhex($codepoint as xs:integer*, $value as xs:integer) as xs:integer
+declare %private function c:unhex($codepoint as xs:integer*, $value as xs:integer) as xs:integer
 {
   if (empty($codepoint)) then
     $value
@@ -335,7 +335,7 @@ declare function c:rgb-to-hsl($color)
                       $r-g-b[3] div 255)
 };
 
-declare function c:rgb-to-hsl($r, $g, $b)
+declare %private function c:rgb-to-hsl($r, $g, $b)
 {
   let $min := min(($r, $g, $b))
   let $max := max(($r, $g, $b))
@@ -353,30 +353,59 @@ declare function c:rgb-to-hsl($r, $g, $b)
       return (xs:integer((($h * 60) + 360 + 0.5) mod 360), $s, $l)
 };
 
-declare function c:relative-color($color, $s, $l)
+declare %private function c:background-lightness($lightness as xs:decimal) as xs:decimal?
 {
-  let $hsl := c:rgb-to-hsl($color)
-  let $h := $hsl[1]
-  let $ss := $hsl[2] * $s
+  for $pair in $c:diagram-lightness?*
+  where abs($pair?text - $lightness) < 0.005
+  return $pair?background
+};
+
+declare function c:relative-color(
+  $base-color as xs:string,
+  $role-saturation as xs:decimal,
+  $role-lightness as xs:decimal) as xs:string
+{
+  let $hsl := c:rgb-to-hsl($base-color)
+  let $base-hue := $hsl[1]
+  let $base-saturation := $hsl[2]
+  let $base-lightness := $hsl[3]
+  let $target-saturation := $base-saturation * $role-saturation
+  let $background-lightness := c:background-lightness($role-lightness)
   return
-    if ($l < 0.061 and $l > 0.039) then
-      let $background-lightness := if ($l > 0.055) then 0.89
-                              else if ($l > 0.045) then 0.81
-                              else                      $c:default-lightness
-      let $background-brightness := c:brightness(c:hsl-to-rgb($h, $ss, c:convert-lightness($background-lightness, $hsl[3], 0, 1)))
-      let $dark := c:hsl-to-rgb($h, $ss, $l)
-      let $light := c:hsl-to-rgb($h, $ss, 0.94)
+    if (empty($background-lightness)) then
+      let $target-lightness := c:convert-lightness($base-lightness, $role-lightness, $role-saturation)
+      return c:rgb(c:hsl-to-rgb($base-hue, $target-saturation, $target-lightness))
+    else
+      let $target-background-lightness := c:convert-lightness($base-lightness, $background-lightness, 1.0)
+      let $background-brightness := c:brightness(c:hsl-to-rgb($base-hue, $target-saturation, $target-background-lightness))
+      let $dark-text-lightness := c:convert-lightness($base-lightness, $role-lightness, 1.0)
+      let $light-text-lightness := c:convert-lightness($base-lightness, 0.94, 1.0)
+      let $dark := c:hsl-to-rgb($base-hue, $target-saturation, $dark-text-lightness)
+      let $light := c:hsl-to-rgb($base-hue, $target-saturation, $light-text-lightness)
       return
-        if (abs(c:brightness($dark) - $background-brightness) > abs(c:brightness($light) - $background-brightness)) then
+        if (abs(c:brightness($dark) - $background-brightness) gt abs(c:brightness($light) - $background-brightness)) then
           c:rgb($dark)
         else
           c:rgb($light)
-    else
-      let $ll := if ($l < 0.5)             then c:convert-lightness($l, $hsl[3], $l - 0.01, $l + 0.05)
-            else if ($l > 0.9 or $s < 0.9) then c:convert-lightness($l, $hsl[3], $l - 0.07, $l + 0.03)
-            else                                c:convert-lightness($l, $hsl[3], 0, 1)
-      return c:rgb(c:hsl-to-rgb($h, $ss, $ll))
-  (: " /* r-c(", substring($color, 2), ", ", string($s), ",", string($l), ") hsl(", string($h), ",", string($ss), ",", string($ll), ") */" :)
+};
+
+declare %private function c:convert-lightness(
+  $base-lightness as xs:decimal,
+  $role-lightness as xs:decimal,
+  $role-saturation as xs:decimal) as xs:decimal
+{
+  let $band := if ($role-lightness < 0.5)  then ($role-lightness - 0.01, $role-lightness + 0.05)
+          else if ($role-lightness > 0.9
+                or $role-saturation < 0.9) then ($role-lightness - 0.07, $role-lightness + 0.03)
+          else                                  (0, 1)
+  let $band-min := $band[1]
+  let $band-max := $band[2]
+  let $band-size := $band-max - $band-min
+  let $band-relative-role-lightness := ($role-lightness - $band-min) div $band-size
+  let $result := if ($base-lightness <= $c:default-lightness)
+            then $band-relative-role-lightness div $c:default-lightness * $base-lightness
+            else $base-lightness + ($band-relative-role-lightness - $c:default-lightness) div (1 - $c:default-lightness) * (1 - $base-lightness)
+  return $band-min + $result * $band-size
 };
 
 (:~
@@ -392,19 +421,9 @@ declare function c:relative-color($color, $s, $l)
  :             the red, green, and blue components of the color.
  : @return The perceived brightness of the color.
  :)
-declare function c:brightness($rgb as xs:decimal+) as xs:decimal
+declare %private function c:brightness($rgb as xs:decimal+) as xs:decimal
 {
   ($rgb[1] * 299 + $rgb[2] * 587 + $rgb[3] * 114) div 1000
-};
-
-declare function c:convert-lightness($oldL as xs:decimal, $newL as xs:decimal, $min as xs:decimal, $max as xs:decimal) as xs:decimal
-{
-  let $factor := $max - $min
-  let $oldL := ($oldL - $min) div $factor
-  let $result := if ($newL <= $c:default-lightness)
-            then $oldL div $c:default-lightness * $newL
-            else $newL + ($oldL - $c:default-lightness) div (1 - $c:default-lightness) * (1 - $newL)
-  return $min + $result * $factor
 };
 
 declare function c:color-code($color as xs:string) as xs:string?
