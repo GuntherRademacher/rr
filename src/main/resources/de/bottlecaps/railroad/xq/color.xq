@@ -360,6 +360,19 @@ declare %private function c:background-lightness($lightness as xs:decimal) as xs
   return $pair?background
 };
 
+declare %private function c:is-background-lightness($lightness as xs:decimal) as xs:boolean
+{
+  some $pair in $c:diagram-lightness?*
+  satisfies abs($pair?background - $lightness) < 0.005
+};
+
+declare %private function c:is-border-lightness($lightness as xs:decimal) as xs:boolean
+{
+  abs(0.10 - $lightness) < 0.005
+};
+
+declare %private variable $c:dark-mode := true();
+
 declare function c:relative-color(
   $base-color as xs:string,
   $role-saturation as xs:decimal,
@@ -372,10 +385,7 @@ declare function c:relative-color(
   let $target-saturation := $base-saturation * $role-saturation
   let $background-lightness := c:background-lightness($role-lightness)
   return
-    if (empty($background-lightness)) then
-      let $target-lightness := c:convert-lightness($base-lightness, $role-lightness, $role-saturation)
-      return c:rgb(c:hsl-to-rgb($base-hue, $target-saturation, $target-lightness))
-    else
+    if (exists($background-lightness)) then
       let $target-background-lightness := c:convert-lightness($base-lightness, $background-lightness, 1.0)
       let $background-brightness := c:brightness(c:hsl-to-rgb($base-hue, $target-saturation, $target-background-lightness))
       let $dark-text-lightness := c:convert-lightness($base-lightness, $role-lightness, 1.0)
@@ -387,6 +397,16 @@ declare function c:relative-color(
           c:rgb($dark)
         else
           c:rgb($light)
+    else
+      let $mode-lightness :=
+        if (c:is-background-lightness($role-lightness) or not($c:dark-mode)) then
+          $role-lightness
+        else if (c:is-border-lightness($role-lightness)) then
+          0.2	
+        else
+          1 - $role-lightness          
+      let $target-lightness := c:convert-lightness($base-lightness, $mode-lightness, $role-saturation)
+      return c:rgb(c:hsl-to-rgb($base-hue, $target-saturation, $target-lightness))
 };
 
 declare %private function c:convert-lightness(
