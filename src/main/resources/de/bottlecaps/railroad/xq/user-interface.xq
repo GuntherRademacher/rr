@@ -1373,73 +1373,127 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
     }}
 
-    function convertColor(oldColor, newHsl)
+    function approx(a, b) {{ return Math.abs(a - b) &lt; 0.005; }}
+
+    var diagram_lightness = [
+      {{ text: {$c:diagram-lightness?terminal   ?text}, background: {$c:diagram-lightness?terminal   ?background} }},
+      {{ text: {$c:diagram-lightness?nonterminal?text}, background: {$c:diagram-lightness?nonterminal?background} }},
+      {{ text: {$c:diagram-lightness?regexp     ?text}, background: {$c:diagram-lightness?regexp     ?background} }}
+    ];
+
+    function backgroundLightnessFor(textL)
+    {{
+      for (var i = 0; i &lt; diagram_lightness.length; i++)
+      {{
+        var p = diagram_lightness[i];
+        if (approx(p.text, textL)) return p.background;
+      }}
+      return null;
+    }}
+
+    function isBackgroundLightness(lightness)
+    {{
+      for (var i = 0; i &lt; diagram_lightness.length; i++)
+      {{
+        if (approx(diagram_lightness[i].background, lightness)) return true;
+      }}
+      return false;
+    }}
+
+    function isBorderLightness(lightness)
+    {{
+      return approx(0.10, lightness);
+    }}
+
+    var darkMode = true;
+
+    function convertColor(roleColor, baseHsl)	
     {{
       var spread = Number(document.getElementsByName("spread")[0].value);
 
       if (spread !== 0)
       {{
-        if (oldColor === "{s:color-regexp($style:default-color, 0)}")
+        if (roleColor === "{s:color-regexp($style:default-color, 0)}")
         {{
-          newHsl = [(newHsl[0] + 2 * spread) % 360, newHsl[1], newHsl[2]];
-          oldColor = "{$style:default-color}";
+          baseHsl = [(baseHsl[0] + 2 * spread) % 360, baseHsl[1], baseHsl[2]];
+          roleColor = "{$style:default-color}";
         }}
-        else if (oldColor === "{s:color-text-regexp($style:default-color, 0)}")
+        else if (roleColor === "{s:color-text-regexp($style:default-color, 0)}")
         {{
-          newHsl = [(newHsl[0] + 2 * spread) % 360, newHsl[1], newHsl[2]];
-          oldColor = "{s:color-text-terminal($style:default-color)}";
+          baseHsl = [(baseHsl[0] + 2 * spread) % 360, baseHsl[1], baseHsl[2]];
+          roleColor = "{s:color-text-terminal($style:default-color)}";
         }}
-        else if (oldColor === "{s:color-nonterminal($style:default-color, 0)}")
+        else if (roleColor === "{s:color-nonterminal($style:default-color, 0)}")
         {{
-          newHsl = [(newHsl[0] + spread) % 360, newHsl[1], newHsl[2]];
-          oldColor = "{$style:default-color}";
+          baseHsl = [(baseHsl[0] + spread) % 360, baseHsl[1], baseHsl[2]];
+          roleColor = "{$style:default-color}";
         }}
-        else if (oldColor === "{s:color-text-nonterminal($style:default-color, 0)}")
+        else if (roleColor === "{s:color-text-nonterminal($style:default-color, 0)}")
         {{
-          newHsl = [(newHsl[0] + spread) % 360, newHsl[1], newHsl[2]];
-          oldColor = "{s:color-text-terminal($style:default-color)}";
+          baseHsl = [(baseHsl[0] + spread) % 360, baseHsl[1], baseHsl[2]];
+          roleColor = "{s:color-text-terminal($style:default-color)}";
         }}
       }}
 
-      var c = parseInt(oldColor.substring(1), 16);
+      var c = parseInt(roleColor.substring(1), 16);
       var r = c >> 16;
       var g = (c >> 8) &amp; 0xff;
       var b = c &amp; 0xff;
-      var oldHsl = rgbToHsl(r, g, b);
+      var roleHsl = rgbToHsl(r, g, b);
+      var roleSaturation = roleHsl[1];
+      var roleLightness = roleHsl[2];
 
-      var h = newHsl[0];
-      var s = newHsl[1] * oldHsl[1];
-      if (oldHsl[2] &lt; 0.061 &amp;&amp; oldHsl[2] &gt; 0.039)
+      var baseHue = baseHsl[0];
+      var baseSaturation = baseHsl[1];
+      var baseLightness = baseHsl[2];
+      var targetSaturation = baseSaturation * roleSaturation;
+      var backgroundLightness = backgroundLightnessFor(roleLightness);
+      if (backgroundLightness !== null)
       {{
-        var backgroundLightness = oldHsl[2] &gt; 0.055 ? 0.89
-                                : oldHsl[2] &gt; 0.045 ? 0.81
-                                :                        {$c:default-lightness}
-        var backgroundBrightness = brightness(hslToRgb(h, s, convertLightness(backgroundLightness, newHsl[2], 0, 1)));
-        var dark = hslToRgb(h, s, oldHsl[2]);
-        var light = hslToRgb(h, s, 0.94);
-        return Math.abs(brightness(dark) - backgroundBrightness) > Math.abs(brightness(light) - backgroundBrightness)
-             ? rgb(dark)
-             : rgb(light);
+        var targetBackgroundLightness = convertLightness(baseLightness, backgroundLightness, 1.0);
+        var backgroundBrightness = brightness(hslToRgb(baseHue, targetSaturation, targetBackgroundLightness));
+        var darkTextLightness  = convertLightness(baseLightness, roleLightness, 1.0);
+        var lightTextLightness = convertLightness(baseLightness, 0.94, 1.0);
+        var dark  = hslToRgb(baseHue, targetSaturation, darkTextLightness);
+        var light = hslToRgb(baseHue, targetSaturation, lightTextLightness);
+        return Math.abs(brightness(dark)  - backgroundBrightness) >
+               Math.abs(brightness(light) - backgroundBrightness)
+             ? rgb(dark) : rgb(light);
       }}
       else
       {{
-        var l = oldHsl[2] &lt; 0.5
-              ? convertLightness(oldHsl[2], newHsl[2], oldHsl[2] - 0.01, oldHsl[2] + 0.05)
-              : oldHsl[2] &gt; 0.9 || oldHsl[1] &lt; 0.9
-              ? convertLightness(oldHsl[2], newHsl[2], oldHsl[2] - 0.07, oldHsl[2] + 0.03)
-              : convertLightness(oldHsl[2], newHsl[2], 0, 1);
-        return rgb(hslToRgb(h, s, l));
+        var modeLightness = (isBackgroundLightness(roleLightness) || ! darkMode)
+          ? roleLightness
+          : isBorderLightness(roleLightness)
+              ? 0.2
+              : 1 - roleLightness;
+
+        var targetLightness = convertLightness(baseLightness, modeLightness, roleSaturation);
+        return rgb(hslToRgb(baseHue, targetSaturation, targetLightness));
       }}
     }}
 
-    function convertLightness(oldL, newL, min, max)
+    function convertLightness(baseL, roleL, roleS)
     {{
-      var factor = max - min;
-      oldL = (oldL - min) / factor;
-      var result = newL &lt;= {$c:default-lightness}
-            ? oldL / {$c:default-lightness} * newL
-            : newL + (oldL - {$c:default-lightness}) / (1 - {$c:default-lightness}) * (1 - newL);
-      return min + result * factor;
+      var bandMin, bandMax;
+      if (roleL &lt; 0.5)
+      {{
+        bandMin = roleL - 0.01; bandMax = roleL + 0.05;
+      }}
+      else if (roleL > 0.9 || roleS &lt; 0.9)
+      {{
+        bandMin = roleL - 0.07; bandMax = roleL + 0.03;
+      }}
+      else
+      {{
+        bandMin = 0.0; bandMax = 1.0;
+      }}
+      var bandSize = bandMax - bandMin;
+      var roleLNorm = (roleL - bandMin) / bandSize;
+      var result = baseL &lt;= {$c:default-lightness}
+        ? (roleLNorm / {$c:default-lightness}) * baseL
+        : baseL + ((roleLNorm - {$c:default-lightness}) / (1 - {$c:default-lightness})) * (1 - baseL);
+      return bandMin + result * bandSize;
     }}
 
     function rgb(rgb)
