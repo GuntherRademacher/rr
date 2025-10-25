@@ -514,12 +514,12 @@ declare function ui:html($tab as xs:string,
                                   comment {$options},
                                   element input
                                   {
-                                    attribute type {"checkbox"},
-                                    attribute name {"options"},
-                                    attribute id  {$ui:SHOWEBNF},
-                                    attribute value {$ui:SHOWEBNF},
-                                    attribute onclick {"changeText();preview();"},
-                                    if ($options = $ui:SHOWEBNF) then attribute checked {true()} else ()
+                                    attribute {"type"} {"checkbox"},
+                                    attribute {"name"} {"options"},
+                                    attribute {"id"} {$ui:SHOWEBNF},
+                                    attribute {"value"} {$ui:SHOWEBNF},
+                                    attribute {"onclick"} {"changeText();preview();"},
+                                    if ($options = $ui:SHOWEBNF) then attribute {"checked"} {true()} else ()
                                   }
                                 }
                               </td>
@@ -655,12 +655,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:ELIMINATERECURSION},
-                                  attribute value {$ui:ELIMINATERECURSION},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:ELIMINATERECURSION) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:ELIMINATERECURSION},
+                                  attribute {"value"} {$ui:ELIMINATERECURSION},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:ELIMINATERECURSION) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -681,12 +681,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:FACTORING},
-                                  attribute value {$ui:FACTORING},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:FACTORING) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:FACTORING},
+                                  attribute {"value"} {$ui:FACTORING},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:FACTORING) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -706,12 +706,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:INLINE},
-                                  attribute value {$ui:INLINE},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:INLINE) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:INLINE},
+                                  attribute {"value"} {$ui:INLINE},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:INLINE) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -730,12 +730,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:KEEP},
-                                  attribute value {$ui:KEEP},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:KEEP) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:KEEP},
+                                  attribute {"value"} {$ui:KEEP},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:KEEP) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>

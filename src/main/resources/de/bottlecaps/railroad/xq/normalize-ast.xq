@@ -59,7 +59,7 @@ declare function n:wrap-sequence($nodes as node()*) as node()
  : @param $node the candidate node.
  : @return the sequence of cases.
  :)
-declare function n:case($node as element()) as element()+
+declare function n:case($node as node()) as node()+
 {
   let $non-sequence := n:unwrap-sequence($node)
   return
@@ -80,7 +80,7 @@ declare function n:case($node as element()) as element()+
  : @param $node the parent operator of the cases to be identified.
  : @return the sequence of cases.
  :)
-declare function n:cases($node as element()) as element()*
+declare function n:cases($node as node()) as node()*
 {
   let $children := n:children($node)
   return
@@ -624,7 +624,7 @@ declare function n:syntax-end($grammar as element(g:grammar)) as processing-inst
  : if necessary.
  : @return the normalized node sequence.
  :)
-declare function n:choice($cases as element()*) as element()*
+declare function n:choice($cases as node()*) as node()*
 {
   let $cases :=
     for $case in $cases

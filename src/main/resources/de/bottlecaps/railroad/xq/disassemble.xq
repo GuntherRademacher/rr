@@ -203,7 +203,7 @@ declare function d:rewrite-html($nodes as node()*, $text-format as xs:string, $i
         d:rewrite-html($node/node(), $text-format, $img-format, $inline, $hotspots, $referenced-by)
       }
     case text() return
-      $node[normalize-space(.)]
+      $node[not(contains($node, "&#xA;")) or normalize-space(.)]
     default return
       $node
 };

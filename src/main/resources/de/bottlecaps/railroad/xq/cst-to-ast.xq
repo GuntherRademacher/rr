@@ -53,7 +53,7 @@ declare function a:ast($nodes as node()*) as node()*
           element {node-name($a)}
           {
             $a/@*,
-            attribute context {substring($node/*[2], 2)},
+            attribute {"context"} {substring($node/*[2], 2)},
             $a/node()
           }
         else
@@ -67,7 +67,7 @@ declare function a:ast($nodes as node()*) as node()*
         attribute maxChar {substring($node, 3, 1)}
       }
     case element(CharCode) return
-      element g:charCode {attribute value {a:charCode($node)}}
+      element g:charCode {attribute {"value"} {a:charCode($node)}}
     case element(CharCodeRange) return
       element g:charCodeRange
       {

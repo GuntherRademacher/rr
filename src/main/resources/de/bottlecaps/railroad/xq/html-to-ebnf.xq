@@ -145,7 +145,7 @@ declare function e:extract-definitions($html as node()) as element(definition)*
               for $row in ($first-row, $continuation-rows)
               let $comment := e:comment($row/*:td[position() > $definition-cell-index + 1])
               where $comment
-              return element comment{concat("&#xA;  ", $indent, $comment)}
+              return element {"comment"} {concat("&#xA;  ", $indent, $comment)}
             }
         else
           element definition {element lhs {"<?TOKENS?>"}}
@@ -305,7 +305,7 @@ declare function e:extract($uri as xs:string, $html as node(), $timezoneOffset a
                 (
                   $definitions[position() = index-of($normalized, $normalized[$i])]/comment
                 )
-              return element comment {$c}
+              return element {"comment"} {$c}
             }
           )
     return
