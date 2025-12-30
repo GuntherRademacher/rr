@@ -13,7 +13,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.6-basex-SNAPSHOT'
+version = '2.7-basex-SNAPSHOT'
 group = 'de.bottlecaps.rr'
 
 def project_name = "$project.name"
@@ -48,7 +48,7 @@ dependencies {
 
     compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
 
-    implementation 'org.basex:basex:12.0'
+    implementation 'org.basex:basex:12.2-SNAPSHOT'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
     implementation('org.apache.xmlgraphics:batik-all:1.19') {
         exclude group: 'xml-apis', module: 'xml-apis'
