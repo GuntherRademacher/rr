@@ -1,4 +1,4 @@
-// This file was generated on Mon Feb 10, 2025 11:05 (UTC+01) by REx v6.2-SNAPSHOT which is Copyright (c) 1979-2025 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Thu Jun 4, 2026 12:43 (UTC+02) by REx v6.2 which is Copyright (c) 1979-2026 by Gunther Rademacher <grd@gmx.net>
 // REx command line: -tree -a none -java -basex -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
@@ -10,7 +10,7 @@ import org.basex.build.SingleParser;
 import org.basex.core.MainOptions;
 import org.basex.io.IOContent;
 import org.basex.query.value.item.Str;
-import org.basex.query.value.node.ANode;
+import org.basex.query.value.node.XNode;
 import org.basex.query.value.node.DBNode;
 import org.basex.util.Atts;
 import org.basex.util.Token;
@@ -170,7 +170,7 @@ public class Parser
     }
   }
 
-  public static ANode parseGrammar(Str str) throws IOException
+  public static XNode parseGrammar(Str str) throws IOException
   {
     BaseXFunction baseXFunction = new BaseXFunction()
     {
@@ -184,7 +184,7 @@ public class Parser
   {
     protected abstract void execute(Parser p);
 
-    public ANode call(Str str) throws IOException
+    public XNode call(Str str) throws IOException
     {
       String input = str.toJava();
       SingleParser singleParser = new SingleParser(new IOContent(""), new MainOptions())
