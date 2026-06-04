@@ -1532,24 +1532,24 @@ declare function ui:welcome-tab() as element(xhtml:div)
     </p>
     <p>
       This is a tool for creating
-      <a target="_blank" href="http://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
+      <a target="_blank" href="https://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
       also known as railroad diagrams, from
-      <a target="_blank" href="http://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
+      <a target="_blank" href="https://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
       specified in
-      <a target="_blank" href="http://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
+      <a target="_blank" href="https://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
       been used for decades now, so the concept is well-known, and some tools for diagram generation are
       in existence. The features of this one are
       <ul>
         <li>usage of the <a target="_blank" href="https://www.w3.org/">W3C</a>'s EBNF notation,</li>
         <li>web-scraping of grammars from W3C specifications,</li>
         <li>online editing of grammars,</li>
-        <li>diagram presentation in <a target="_blank" href="https://www.w3.org/Graphics/SVG/">SVG</a>,</li>
+        <li>diagram presentation in <a target="_blank" href="https://www.w3.org/TR/SVG2/">SVG</a>,</li>
         <li>
           and it was completely written in web languages
-          (<a target="_blank" href="http://en.wikipedia.org/wiki/XQuery">XQuery</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/XHTML">XHTML</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
+          (<a target="_blank" href="https://en.wikipedia.org/wiki/XQuery">XQuery</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/XHTML">XHTML</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
         </li>
       </ul>
     </p>

@@ -5,7 +5,7 @@
 plugins {
     id 'java'
     id 'war'
-    id 'com.github.jk1.dependency-license-report' version '2.9'
+    id 'com.github.jk1.dependency-license-report' version '3.1.2'
     id 'maven-publish'
     id 'signing'
 }
@@ -13,12 +13,12 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.6'
+version = '2.7-SNAPSHOT'
 group = 'de.bottlecaps.rr'
 
 def project_name = "$project.name"
 def buildTime = new Date()
-def aceVersion = '1.41.0'
+def aceVersion = '1.44.0'
 
 def generatedSrc = "$buildDir/generated-src/main"
 
@@ -46,8 +46,8 @@ dependencies {
 
     compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
 
-    implementation 'net.sf.saxon:Saxon-HE:12.9'
-    implementation 'org.xmlresolver:xmlresolver:5.3.3'
+    implementation 'net.sf.saxon:Saxon-HE:13.0'
+    implementation 'org.xmlresolver:xmlresolver:6.0.23'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
     implementation('org.apache.xmlgraphics:batik-all:1.19') {
         exclude group: 'xml-apis', module: 'xml-apis'
@@ -108,7 +108,7 @@ public class RailroadVersion
 
 compileJava {
     dependsOn generateSrc
-    options.release = 11
+    options.release = 17
 }
 
 javadoc {
@@ -136,7 +136,7 @@ Licensed under the Apache 2.0 License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-        http://www.apache.org/licenses/LICENSE-2.0
+        https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
