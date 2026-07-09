@@ -44,7 +44,7 @@ configurations {
 dependencies {
     ace "org.webjars.npm:ace-builds:$aceVersion"
 
-    compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
+    compileOnly 'org.apache.tomcat:tomcat-servlet-api:11.0.24'
 
     implementation 'net.sf.saxon:Saxon-HE:13.0'
     implementation 'org.xmlresolver:xmlresolver:6.0.23'
