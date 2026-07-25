@@ -5,7 +5,7 @@
 plugins {
     id 'java'
     id 'war'
-    id 'com.github.jk1.dependency-license-report' version '3.1.2'
+    id 'com.github.jk1.dependency-license-report' version '3.1.4'
     id 'maven-publish'
     id 'signing'
 }
