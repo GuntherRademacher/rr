@@ -59,6 +59,10 @@ public enum BaseXXQueryProcessor implements XQueryProcessor {
         bindExternalVariables(queryProcessor, externalVars);
         return new BaseXResult(queryProcessor.iter().value(queryProcessor.qc, null));
       }
+      catch (QueryException e) {
+        System.err.println("QueryException: " + e.getMessage());
+        throw e;
+      }
     }
   }
 
