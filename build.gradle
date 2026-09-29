@@ -48,7 +48,7 @@ dependencies {
 
     compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
 
-    implementation 'org.basex:basex:12.4'
+    implementation 'org.basex:basex:13.0-SNAPSHOT'
     implementation 'org.ccil.cowan.tagsoup:tagsoup:1.2.1'
     implementation('org.apache.xmlgraphics:batik-all:1.19') {
         exclude group: 'xml-apis', module: 'xml-apis'
