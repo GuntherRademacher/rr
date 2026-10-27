@@ -80,8 +80,8 @@ declare function b:re-indent($text as xs:string?, $indent as xs:integer) as xs:s
         where normalize-space($line) != ""
         return string-length($line) - string-length(replace($line, "^ +", ""))
       )
-    let $old-indent := string-join(("^", for $x in 1 to $min-indent return " "), "")
-    let $new-indent := string-join(for $x in 1 to $indent return " ", "")
+    let $old-indent := string-join(("^", (1 to $min-indent) ! " "), "")
+    let $new-indent := string-join((1 to $indent) ! " ", "")
     return
       string-join
       (
