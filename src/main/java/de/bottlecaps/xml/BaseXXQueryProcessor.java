@@ -90,7 +90,7 @@ public enum BaseXXQueryProcessor implements XQueryProcessor {
 
   private static SerializerOptions serializerOptions(Map<String, String> outputOptions) {
     SerializerOptions serializerOptions = new SerializerOptions();
-    serializerOptions.set(SerializerOptions.NEWLINE, SerializerOptions.Newline.NL);
+    serializerOptions.set(SerializerOptions.LINE_ENDING, "\n");
     outputOptions.forEach((key, value) -> {
       Option<?> option = null;
       for (Field field : SerializerOptions.class.getDeclaredFields()) {
