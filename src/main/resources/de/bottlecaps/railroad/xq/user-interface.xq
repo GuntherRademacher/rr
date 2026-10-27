@@ -2000,7 +2000,7 @@ declare function ui:xhtml() as item()*
   xf:set-serialization-parameter($ui:output-options, "indent", "yes"),
   xf:set-serialization-parameter($ui:output-options, "method", "xhtml"),
   xf:set-serialization-parameter($ui:output-options, "html-version", "5.0"),
-  xf:set-serialization-parameter($ui:output-options, "include-content-type", "yes"),
+  xf:set-serialization-parameter($ui:output-options, "include-content-type", "no"),
   xf:set-serialization-parameter($ui:output-options, "omit-xml-declaration", "yes"),
   xf:set-serialization-parameter($ui:output-options, "version", "1.0"),
   xf:set-serialization-parameter($ui:output-options, "doctype-system", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"),
