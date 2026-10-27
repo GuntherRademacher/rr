@@ -19,9 +19,6 @@ declare namespace xf="de/bottlecaps/railroad/core/ExtensionFunctions";
 
 declare namespace math="http://www.w3.org/2005/xpath-functions/math";
 declare namespace xhtml="http://www.w3.org/1999/xhtml";
-declare namespace xlink="http://www.w3.org/1999/xlink";
-declare namespace svg="http://www.w3.org/2000/svg";
-declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
 
 declare variable $ui:request external;
 declare variable $ui:response external;
@@ -439,7 +436,6 @@ declare function ui:html($tab as xs:string,
                       </g:production>
                     </g:grammar>
                   let $preview-color := s:color-1($style:default-color)
-                  let $hsl := c:rgb-to-hsl($preview-color)
                   let $previewHtml :=
                   (
                     <style type="text/css">
@@ -501,7 +497,6 @@ declare function ui:html($tab as xs:string,
                                                        style:color-foreground($preview-color)
                                                       )
                                           let $r-g-b := for $x in c:r-g-b($rgb) return string($x)
-                                          let $h-s-l := for $x in c:rgb-to-hsl($rgb) return string(round($x * 100) div 100)
                                           let $title := concat($rgb, "  rgb(", $r-g-b[1], ",", $r-g-b[2], ",", $r-g-b[3], ")")
                                           return <tr><td style="background-color: {$rgb}" class="palette"><a title="{$title}">&#160;&#160;&#160;&#160;&#160;</a></td><td>{$rgb}</td></tr>
                                         }</table>
@@ -1135,9 +1130,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
 
       document.getElementById("xhtml").value = new XMLSerializer().serializeToString(diagram.contentDocument);
       task.value = "{$ui:DOWNLOAD}";
-//    document.forms.data.target = "_blank";
       document.forms.data.target = "";
-//    document.forms.data.frame.value = "diagram";
       document.forms.data.frame.value = "";
       document.forms.data.submit();
     }}
@@ -2006,6 +1999,8 @@ declare function ui:xhtml() as item()*
   xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
   xf:set-serialization-parameter($ui:output-options, "indent", "yes"),
   xf:set-serialization-parameter($ui:output-options, "method", "xhtml"),
+  xf:set-serialization-parameter($ui:output-options, "html-version", "5.0"),
+  xf:set-serialization-parameter($ui:output-options, "include-content-type", "yes"),
   xf:set-serialization-parameter($ui:output-options, "omit-xml-declaration", "yes"),
   xf:set-serialization-parameter($ui:output-options, "version", "1.0"),
   xf:set-serialization-parameter($ui:output-options, "doctype-system", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"),

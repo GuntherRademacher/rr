@@ -130,7 +130,7 @@ declare function e:extract-definitions($html as node()) as element(definition)*
                   if ($spaces < 0) then
                     concat("&#xA;", $indent)
                   else
-                    string-join((for $i in 1 to $spaces return " "), ""),
+                    string-join((1 to $spaces) ! " ", ""),
                 " ::= "
               ),
               element rhs

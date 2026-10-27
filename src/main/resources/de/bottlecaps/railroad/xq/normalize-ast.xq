@@ -10,7 +10,6 @@
  :)
 module namespace n="de/bottlecaps/railroad/xq/normalize-ast.xq";
 
-import module namespace b="de/bottlecaps/railroad/xq/ast-to-ebnf.xq" at "ast-to-ebnf.xq";
 import module namespace c = "de/bottlecaps/railroad/xq/color.xq" at "color.xq";
 
 declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
