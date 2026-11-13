@@ -30,8 +30,11 @@ is also available [on GitHub][CONVERT-GITHUB].
 # Distribution
 
 RR comes as a .zip, containing a .war file. The .war file can be deployed
-in servlet containers like Tomcat or Jetty for serving the GUI. This makes up the webapp
-that is running on the original website, <https://www.bottlecaps.de/rr/ui>.
+in Jakarta EE servlet containers like Tomcat 10.1 (or higher) or Jetty 12 for serving the GUI.
+This makes up the webapp that is running on the original website, <https://www.bottlecaps.de/rr/ui>.
+Older containers using the `javax.servlet` namespace, such as Tomcat 9 or earlier, are not supported.
+
+Running RR requires Java 17 or higher.
 
 The .war file is a Java "executable war", i.e. it can also be started
 standalone from command line. Two different tasks can be performed in standalone mode:

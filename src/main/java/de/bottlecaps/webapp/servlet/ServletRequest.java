@@ -7,9 +7,9 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.Part;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
 
 import de.bottlecaps.webapp.Cookie;
 import de.bottlecaps.webapp.MultiPart;
@@ -123,7 +123,7 @@ public class ServletRequest implements Request
   @Override
   public Cookie[] getCookies()
   {
-    javax.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
+    jakarta.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
     return cookies == null
         ? new Cookie[0]
         : Arrays.stream(cookies)

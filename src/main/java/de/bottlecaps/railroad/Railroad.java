@@ -294,7 +294,7 @@ public class Railroad
     {
       out.println();
       out.println(file + " is an executable war file. It can be run with \"java -jar\" as shown");
-      out.println("above, but it can also be deployed in servlet containers like Tomcat or Jetty.");
+      out.println("above, but it can also be deployed in Jakarta EE servlet containers like Tomcat 10.1+ or Jetty 12.");
     }
   }
 

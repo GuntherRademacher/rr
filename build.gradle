@@ -13,7 +13,7 @@ plugins {
 defaultTasks 'build'
 build.dependsOn 'distZip'
 
-version = '2.7-SNAPSHOT'
+version = '2.7'
 group = 'de.bottlecaps.rr'
 
 def project_name = "$project.name"
@@ -44,7 +44,7 @@ configurations {
 dependencies {
     ace "org.webjars.npm:ace-builds:$aceVersion"
 
-    compileOnly 'org.apache.tomcat:tomcat-servlet-api:8.5.100'
+    compileOnly 'org.apache.tomcat:tomcat-servlet-api:11.0.27'
 
     implementation 'net.sf.saxon:Saxon-HE:13.1'
     implementation 'org.xmlresolver:xmlresolver:6.1.1'
