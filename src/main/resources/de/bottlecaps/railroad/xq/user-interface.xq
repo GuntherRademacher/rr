@@ -19,9 +19,6 @@ declare namespace xf="de/bottlecaps/railroad/core/ExtensionFunctions";
 
 declare namespace math="http://www.w3.org/2005/xpath-functions/math";
 declare namespace xhtml="http://www.w3.org/1999/xhtml";
-declare namespace xlink="http://www.w3.org/1999/xlink";
-declare namespace svg="http://www.w3.org/2000/svg";
-declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
 
 declare variable $ui:request external;
 declare variable $ui:response external;
@@ -439,7 +436,6 @@ declare function ui:html($tab as xs:string,
                       </g:production>
                     </g:grammar>
                   let $preview-color := s:color-1($style:default-color)
-                  let $hsl := c:rgb-to-hsl($preview-color)
                   let $previewHtml :=
                   (
                     <style type="text/css">
@@ -501,7 +497,6 @@ declare function ui:html($tab as xs:string,
                                                        style:color-foreground($preview-color)
                                                       )
                                           let $r-g-b := for $x in c:r-g-b($rgb) return string($x)
-                                          let $h-s-l := for $x in c:rgb-to-hsl($rgb) return string(round($x * 100) div 100)
                                           let $title := concat($rgb, "  rgb(", $r-g-b[1], ",", $r-g-b[2], ",", $r-g-b[3], ")")
                                           return <tr><td style="background-color: {$rgb}" class="palette"><a title="{$title}">&#160;&#160;&#160;&#160;&#160;</a></td><td>{$rgb}</td></tr>
                                         }</table>
@@ -514,12 +509,12 @@ declare function ui:html($tab as xs:string,
                                   comment {$options},
                                   element input
                                   {
-                                    attribute type {"checkbox"},
-                                    attribute name {"options"},
-                                    attribute id  {$ui:SHOWEBNF},
-                                    attribute value {$ui:SHOWEBNF},
-                                    attribute onclick {"changeText();preview();"},
-                                    if ($options = $ui:SHOWEBNF) then attribute checked {true()} else ()
+                                    attribute {"type"} {"checkbox"},
+                                    attribute {"name"} {"options"},
+                                    attribute {"id"} {$ui:SHOWEBNF},
+                                    attribute {"value"} {$ui:SHOWEBNF},
+                                    attribute {"onclick"} {"changeText();preview();"},
+                                    if ($options = $ui:SHOWEBNF) then attribute {"checked"} {true()} else ()
                                   }
                                 }
                               </td>
@@ -655,12 +650,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:ELIMINATERECURSION},
-                                  attribute value {$ui:ELIMINATERECURSION},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:ELIMINATERECURSION) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:ELIMINATERECURSION},
+                                  attribute {"value"} {$ui:ELIMINATERECURSION},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:ELIMINATERECURSION) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -681,12 +676,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:FACTORING},
-                                  attribute value {$ui:FACTORING},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:FACTORING) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:FACTORING},
+                                  attribute {"value"} {$ui:FACTORING},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:FACTORING) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -706,12 +701,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:INLINE},
-                                  attribute value {$ui:INLINE},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:INLINE) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:INLINE},
+                                  attribute {"value"} {$ui:INLINE},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:INLINE) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -730,12 +725,12 @@ declare function ui:html($tab as xs:string,
                               {
                                 element input
                                 {
-                                  attribute type {"checkbox"},
-                                  attribute name {"options"},
-                                  attribute id  {$ui:KEEP},
-                                  attribute value {$ui:KEEP},
-                                  attribute onclick {"changeText();preview();"},
-                                  if ($options = $ui:KEEP) then attribute checked {true()} else ()
+                                  attribute {"type"} {"checkbox"},
+                                  attribute {"name"} {"options"},
+                                  attribute {"id"} {$ui:KEEP},
+                                  attribute {"value"} {$ui:KEEP},
+                                  attribute {"onclick"} {"changeText();preview();"},
+                                  if ($options = $ui:KEEP) then attribute {"checked"} {true()} else ()
                                 }
                               }
                               </td>
@@ -1135,9 +1130,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
 
       document.getElementById("xhtml").value = new XMLSerializer().serializeToString(diagram.contentDocument);
       task.value = "{$ui:DOWNLOAD}";
-//    document.forms.data.target = "_blank";
       document.forms.data.target = "";
-//    document.forms.data.frame.value = "diagram";
       document.forms.data.frame.value = "";
       document.forms.data.submit();
     }}
@@ -1586,24 +1579,24 @@ declare function ui:welcome-tab() as element(xhtml:div)
     </p>
     <p>
       This is a tool for creating
-      <a target="_blank" href="http://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
+      <a target="_blank" href="https://en.wikipedia.org/wiki/Syntax_diagram">syntax diagrams</a>,
       also known as railroad diagrams, from
-      <a target="_blank" href="http://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
+      <a target="_blank" href="https://en.wikipedia.org/wiki/Context-free_grammar">context-free grammars</a>
       specified in
-      <a target="_blank" href="http://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
+      <a target="_blank" href="https://en.wikipedia.org/wiki/EBNF">EBNF</a>. Syntax diagrams have
       been used for decades now, so the concept is well-known, and some tools for diagram generation are
       in existence. The features of this one are
       <ul>
         <li>usage of the <a target="_blank" href="https://www.w3.org/">W3C</a>'s EBNF notation,</li>
         <li>web-scraping of grammars from W3C specifications,</li>
         <li>online editing of grammars,</li>
-        <li>diagram presentation in <a target="_blank" href="https://www.w3.org/Graphics/SVG/">SVG</a>,</li>
+        <li>diagram presentation in <a target="_blank" href="https://www.w3.org/TR/SVG2/">SVG</a>,</li>
         <li>
           and it was completely written in web languages
-          (<a target="_blank" href="http://en.wikipedia.org/wiki/XQuery">XQuery</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/XHTML">XHTML</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
-          <a target="_blank" href="http://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
+          (<a target="_blank" href="https://en.wikipedia.org/wiki/XQuery">XQuery</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/XHTML">XHTML</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a>,
+          <a target="_blank" href="https://en.wikipedia.org/wiki/JavaScript">JavaScript</a>).
         </li>
       </ul>
     </p>
@@ -2060,6 +2053,8 @@ declare function ui:xhtml() as item()*
   xf:set-serialization-parameter($ui:output-options, "encoding", "UTF-8"),
   xf:set-serialization-parameter($ui:output-options, "indent", "yes"),
   xf:set-serialization-parameter($ui:output-options, "method", "xhtml"),
+  xf:set-serialization-parameter($ui:output-options, "html-version", "5.0"),
+  xf:set-serialization-parameter($ui:output-options, "include-content-type", "no"),
   xf:set-serialization-parameter($ui:output-options, "omit-xml-declaration", "yes"),
   xf:set-serialization-parameter($ui:output-options, "version", "1.0"),
   xf:set-serialization-parameter($ui:output-options, "doctype-system", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"),

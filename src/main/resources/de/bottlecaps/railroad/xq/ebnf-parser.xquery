@@ -1,6 +1,6 @@
 xquery version "1.0" encoding "UTF-8";
 
-(: This file was generated on Mon Feb 10, 2025 11:01 (UTC+01) by REx v6.2-SNAPSHOT which is Copyright (c) 1979-2025 by Gunther Rademacher <grd@gmx.net> :)
+(: This file was generated on Sat Nov 14, 2026 11:00 (UTC+01) by REx v7.0 which is Copyright (c) 1979-2026 by Gunther Rademacher <grd@gmx.net> :)
 (: REx command line: -xquery -tree -name de/bottlecaps/railroad/xq/ebnf-parser.xquery ..\..\..\..\..\java\de\bottlecaps\railroad\core\Parser.ebnf :)
 
 (:~

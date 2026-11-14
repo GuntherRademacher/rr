@@ -1436,7 +1436,7 @@ declare function s:process-annotations($nodes as node()*) as node()*
  :)
 declare function s:head($color as xs:string, $spread as xs:integer, $page-width as xs:integer?, $extra-css as xs:string?) as element()+
 {
-  <meta http-equiv="Content-Type" content="application/xhtml+xml" xmlns="http://www.w3.org/1999/xhtml"/>,
+  <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" xmlns="http://www.w3.org/1999/xhtml"/>,
   <meta name="generator" content="Railroad Diagram Generator {$s:version}" xmlns="http://www.w3.org/1999/xhtml"/>,
   <style type="text/css" xmlns="http://www.w3.org/1999/xhtml">{style:css($color, $page-width), $extra-css}</style>,
   s:defs($color, $spread)

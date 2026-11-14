@@ -13,6 +13,7 @@ public enum OutputOptions
           "omit-xml-declaration", "yes",
           "indent", "yes",
           "method", "xhtml",
+          "include-content-type", "no",
           "media-type", "application/xhtml+xml",
           "version", "1.0",
           "doctype-system", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd",

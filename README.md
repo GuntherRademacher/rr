@@ -30,8 +30,11 @@ is also available [on GitHub][CONVERT-GITHUB].
 # Distribution
 
 RR comes as a .zip, containing a .war file. The .war file can be deployed
-in servlet containers like Tomcat or Jetty for serving the GUI. This makes up the webapp
-that is running on the original website, <https://www.bottlecaps.de/rr/ui>.
+in Jakarta EE servlet containers like Tomcat 10.1 (or higher) or Jetty 12 for serving the GUI.
+This makes up the webapp that is running on the original website, <https://www.bottlecaps.de/rr/ui>.
+Older containers using the `javax.servlet` namespace, such as Tomcat 9 or earlier, are not supported.
+
+Running RR requires Java 17 or higher.
 
 The .war file is a Java "executable war", i.e. it can also be started
 standalone from command line. Two different tasks can be performed in standalone mode:
@@ -55,7 +58,7 @@ For listing the full set of available options, run
 without further command line arguments.
 
 # Building RR
-For building RR, JDK 11 (or higher) must be available. In the
+For building RR, JDK 17 (or higher) must be available. In the
 project folder, run this command to build the distribution .zip file:
 
 ```bash
@@ -81,19 +84,19 @@ This project makes use of
 
 # License
 
-Copyright (c) 2010-2025 Gunther Rademacher. RR is provided under the [Apache 2 License][ASL].
+Copyright (c) 2010-2026 Gunther Rademacher. RR is provided under the [Apache 2 License][ASL].
 
 # Links
 
 The official website for RR is <https://www.bottlecaps.de/rr/ui>.
 
-[ASL]: http://www.apache.org/licenses/LICENSE-2.0
+[ASL]: https://www.apache.org/licenses/LICENSE-2.0.txt
 [PYTHON]: https://docs.python.org/3/reference/grammar.html
-[W3C-EBNF]: http://www.w3.org/TR/2010/REC-xquery-20101214/#EBNFNotation
-[CONVERT]: http://www.bottlecaps.de/ebnf-convert/
+[W3C-EBNF]: https://www.w3.org/TR/2010/REC-xquery-20101214/Overview.html#EBNFNotation
+[CONVERT]: https://www.bottlecaps.de/ebnf-convert/
 [CONVERT-GITHUB]: https://github.com/GuntherRademacher/ebnf-convert
-[SAXON]: http://www.saxonica.com/products/products.xml
-[TAGSOUP]: https://search.maven.org/artifact/org.ccil.cowan.tagsoup/tagsoup/1.2.1/jar
+[SAXON]: https://www.saxonica.com/products/products.xml
+[TAGSOUP]: https://central.sonatype.com/artifact/org.ccil.cowan.tagsoup/tagsoup/1.2.1
 [BATIK]: https://xmlgraphics.apache.org/batik/
 [ACE]: https://ace.c9.io/
 [GRADLE]: https://gradle.org/

@@ -1,4 +1,4 @@
-// This file was generated on Mon Feb 10, 2025 11:01 (UTC+01) by REx v6.2-SNAPSHOT which is Copyright (c) 1979-2025 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Sat Nov 14, 2026 11:00 (UTC+01) by REx v7.0 which is Copyright (c) 1979-2026 by Gunther Rademacher <grd@gmx.net>
 // REx command line: -tree -a none -java -saxon -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
@@ -28,6 +28,7 @@ import net.sf.saxon.om.NamespaceMap;
 import net.sf.saxon.s9api.Location;
 import net.sf.saxon.str.StringView;
 
+@SuppressWarnings("all")
 public class Parser
 {
   public static class ParseException extends RuntimeException
@@ -67,9 +68,9 @@ public class Parser
   public interface EventHandler
   {
     public void reset(CharSequence string);
-    public void startNonterminal(String name, int begin);
-    public void endNonterminal(String name, int end);
-    public void terminal(String name, int begin, int end);
+    public void startNonterminal(int id, int begin);
+    public void endNonterminal(int id, int end);
+    public void terminal(int id, int begin, int end);
     public void whitespace(int begin, int end);
   }
 
@@ -87,25 +88,25 @@ public class Parser
     }
 
     @Override
-    public void startNonterminal(String name, int begin)
+    public void startNonterminal(int id, int begin)
     {
-      Nonterminal nonterminal = new Nonterminal(name, begin, begin, new Symbol[0]);
+      Nonterminal nonterminal = new Nonterminal(id, begin, begin, new Symbol[0]);
       if (top >= 0) addChild(nonterminal);
       if (++top >= stack.length) stack = Arrays.copyOf(stack, stack.length << 1);
       stack[top] = nonterminal;
     }
 
     @Override
-    public void endNonterminal(String name, int end)
+    public void endNonterminal(int id, int end)
     {
       stack[top].end = end;
       if (top > 0) --top;
     }
 
     @Override
-    public void terminal(String name, int begin, int end)
+    public void terminal(int id, int begin, int end)
     {
-      addChild(new Terminal(name, begin, end));
+      addChild(new Terminal(id, begin, end));
     }
 
     @Override
@@ -129,31 +130,39 @@ public class Parser
 
   public static abstract class Symbol
   {
-    public String name;
+    public int id;
     public int begin;
     public int end;
 
-    protected Symbol(String name, int begin, int end)
+    protected Symbol(int id, int begin, int end)
     {
-      this.name = name;
+      this.id = id;
       this.begin = begin;
       this.end = end;
     }
+
+    public abstract String getName();
 
     public abstract void send(EventHandler e);
   }
 
   public static class Terminal extends Symbol
   {
-    public Terminal(String name, int begin, int end)
+    public Terminal(int id, int begin, int end)
     {
-      super(name, begin, end);
+      super(id, begin, end);
+    }
+
+    @Override
+    public String getName()
+    {
+      return TOKEN[id];
     }
 
     @Override
     public void send(EventHandler e)
     {
-      e.terminal(name, begin, end);
+      e.terminal(id, begin, end);
     }
   }
 
@@ -161,16 +170,22 @@ public class Parser
   {
     public Symbol[] children;
 
-    public Nonterminal(String name, int begin, int end, Symbol[] children)
+    public Nonterminal(int id, int begin, int end, Symbol[] children)
     {
-      super(name, begin, end);
+      super(id, begin, end);
       this.children = children;
+    }
+
+    @Override
+    public String getName()
+    {
+      return NONTERMINAL[id];
     }
 
     @Override
     public void send(EventHandler e)
     {
-      e.startNonterminal(name, begin);
+      e.startNonterminal(id, begin);
       int pos = begin;
       for (Symbol c : children)
       {
@@ -179,7 +194,7 @@ public class Parser
         pos = c.end;
       }
       if (pos < end) e.whitespace(pos, end);
-      e.endNonterminal(name, end);
+      e.endNonterminal(id, end);
     }
   }
 
@@ -203,7 +218,12 @@ public class Parser
     }
 
     @Override
-    public void startNonterminal(String name, int begin)
+    public void startNonterminal(int id, int begin)
+    {
+      startElement(getNonterminalName(id));
+    }
+
+    private void startElement(String name)
     {
       try
       {
@@ -216,7 +236,12 @@ public class Parser
     }
 
     @Override
-    public void endNonterminal(String name, int end)
+    public void endNonterminal(int id, int end)
+    {
+      endElement();
+    }
+
+    private void endElement()
     {
       try
       {
@@ -229,15 +254,16 @@ public class Parser
     }
 
     @Override
-    public void terminal(String name, int begin, int end)
+    public void terminal(int id, int begin, int end)
     {
+      String name = getTerminalName(id);
       if (name.charAt(0) == '\'')
       {
         name = "TOKEN";
       }
-      startNonterminal(name, begin);
+      startElement(name);
       characters(begin, end);
-      endNonterminal(name, end);
+      endElement();
     }
 
     @Override
@@ -399,6 +425,16 @@ public class Parser
     return e.getOffending() < 0 ? null : TOKEN[e.getOffending()];
   }
 
+  public static String getTerminalName(int id)
+  {
+    return TOKEN[id];
+  }
+
+  public static String getNonterminalName(int id)
+  {
+    return NONTERMINAL[id];
+  }
+
   public static String[] getExpectedTokenSet(ParseException e)
   {
     String[] expected;
@@ -435,7 +471,7 @@ public class Parser
 
   public void parse_Grammar()
   {
-    eventHandler.startNonterminal("Grammar", e0);
+    eventHandler.startNonterminal(0, e0);
     for (;;)
     {
       lookahead1W(19);              // Whitespace | NCName | DocComment | '.' | '<?'
@@ -516,12 +552,12 @@ public class Parser
       }
     }
     consume(16);                    // EOF
-    eventHandler.endNonterminal("Grammar", e0);
+    eventHandler.endNonterminal(0, e0);
   }
 
   private void parse_ProcessingInstruction()
   {
-    eventHandler.startNonterminal("ProcessingInstruction", e0);
+    eventHandler.startNonterminal(1, e0);
     consume(31);                    // '<?'
     lookahead1(0);                  // NCName
     consume(3);                     // NCName
@@ -541,12 +577,12 @@ public class Parser
     }
     lookahead1(2);                  // '?>'
     consume(37);                    // '?>'
-    eventHandler.endNonterminal("ProcessingInstruction", e0);
+    eventHandler.endNonterminal(1, e0);
   }
 
   private void parse_Production()
   {
-    eventHandler.startNonterminal("Production", e0);
+    eventHandler.startNonterminal(2, e0);
     if (l1 == 15)                   // DocComment
     {
       consume(15);                  // DocComment
@@ -588,12 +624,12 @@ public class Parser
       whitespace();
       parse_Option();
     }
-    eventHandler.endNonterminal("Production", e0);
+    eventHandler.endNonterminal(2, e0);
   }
 
   private void parse_Alternatives()
   {
-    eventHandler.startNonterminal("Alternatives", e0);
+    eventHandler.startNonterminal(3, e0);
     parse_Alternative();
     lookahead1W(33);                // Whitespace | NCName | StringLiteral | WsExplicit | WsDefinition | DocComment |
                                     // EOF | EquivalenceLookAhead | '.' | '/' | '<?ENCORE?>' | '<?TOKENS?>' | '|'
@@ -637,12 +673,12 @@ public class Parser
         }
       }
     }
-    eventHandler.endNonterminal("Alternatives", e0);
+    eventHandler.endNonterminal(3, e0);
   }
 
   private void parse_Alternative()
   {
-    eventHandler.startNonterminal("Alternative", e0);
+    eventHandler.startNonterminal(4, e0);
     parse_CompositeExpression();
     lookahead1W(35);                // Whitespace | NCName | StringLiteral | WsExplicit | WsDefinition | DocComment |
                                     // EOF | EquivalenceLookAhead | '&' | '.' | '/' | '<?ENCORE?>' | '<?TOKENS?>' | '|'
@@ -655,12 +691,12 @@ public class Parser
       whitespace();
       parse_CompositeExpression();
     }
-    eventHandler.endNonterminal("Alternative", e0);
+    eventHandler.endNonterminal(4, e0);
   }
 
   private void parse_CompositeExpression()
   {
-    eventHandler.startNonterminal("CompositeExpression", e0);
+    eventHandler.startNonterminal(5, e0);
     switch (l1)
     {
     case 3:                         // NCName
@@ -859,12 +895,12 @@ public class Parser
         }
       }
     }
-    eventHandler.endNonterminal("CompositeExpression", e0);
+    eventHandler.endNonterminal(5, e0);
   }
 
   private void parse_Item()
   {
-    eventHandler.startNonterminal("Item", e0);
+    eventHandler.startNonterminal(6, e0);
     parse_Primary();
     lookahead1W(47);                // Whitespace | NCName | StringLiteral | CharCode | WsExplicit | WsDefinition |
                                     // DocComment | EOF | EquivalenceLookAhead | '$' | '&' | '(' | ')' | '*' | '**' |
@@ -886,12 +922,12 @@ public class Parser
         consume(24);                // '+'
       }
     }
-    eventHandler.endNonterminal("Item", e0);
+    eventHandler.endNonterminal(6, e0);
   }
 
   private void parse_Primary()
   {
-    eventHandler.startNonterminal("Primary", e0);
+    eventHandler.startNonterminal(7, e0);
     switch (l1)
     {
     case 3:                         // NCName
@@ -921,12 +957,12 @@ public class Parser
     default:
       parse_CharClass();
     }
-    eventHandler.endNonterminal("Primary", e0);
+    eventHandler.endNonterminal(7, e0);
   }
 
   private void parse_Choice()
   {
-    eventHandler.startNonterminal("Choice", e0);
+    eventHandler.startNonterminal(8, e0);
     parse_CompositeExpression();
     lookahead1W(17);                // Whitespace | ')' | '/' | '|'
     if (l1 != 21)                   // ')'
@@ -964,12 +1000,12 @@ public class Parser
         }
       }
     }
-    eventHandler.endNonterminal("Choice", e0);
+    eventHandler.endNonterminal(8, e0);
   }
 
   private void parse_NameOrString()
   {
-    eventHandler.startNonterminal("NameOrString", e0);
+    eventHandler.startNonterminal(9, e0);
     switch (l1)
     {
     case 3:                         // NCName
@@ -994,12 +1030,12 @@ public class Parser
         consume(4);                 // Context
       }
     }
-    eventHandler.endNonterminal("NameOrString", e0);
+    eventHandler.endNonterminal(9, e0);
   }
 
   private void parse_CharClass()
   {
-    eventHandler.startNonterminal("CharClass", e0);
+    eventHandler.startNonterminal(10, e0);
     switch (l1)
     {
     case 38:                        // '['
@@ -1032,23 +1068,23 @@ public class Parser
       }
     }
     consume(41);                    // ']'
-    eventHandler.endNonterminal("CharClass", e0);
+    eventHandler.endNonterminal(10, e0);
   }
 
   private void parse_Link()
   {
-    eventHandler.startNonterminal("Link", e0);
+    eventHandler.startNonterminal(11, e0);
     consume(10);                    // UrlIntroducer
     lookahead1(1);                  // URL
     consume(11);                    // URL
     lookahead1(3);                  // ']'
     consume(41);                    // ']'
-    eventHandler.endNonterminal("Link", e0);
+    eventHandler.endNonterminal(11, e0);
   }
 
   private void parse_Option()
   {
-    eventHandler.startNonterminal("Option", e0);
+    eventHandler.startNonterminal(12, e0);
     switch (l1)
     {
     case 12:                        // WsExplicit
@@ -1057,12 +1093,12 @@ public class Parser
     default:
       consume(13);                  // WsDefinition
     }
-    eventHandler.endNonterminal("Option", e0);
+    eventHandler.endNonterminal(12, e0);
   }
 
   private void parse_Preference()
   {
-    eventHandler.startNonterminal("Preference", e0);
+    eventHandler.startNonterminal(13, e0);
     parse_NameOrString();
     lookahead1W(16);                // Whitespace | '<<' | '>>'
     switch (l1)
@@ -1127,12 +1163,12 @@ public class Parser
         break;
       }
     }
-    eventHandler.endNonterminal("Preference", e0);
+    eventHandler.endNonterminal(13, e0);
   }
 
   private void parse_Delimiter()
   {
-    eventHandler.startNonterminal("Delimiter", e0);
+    eventHandler.startNonterminal(14, e0);
     consume(3);                     // NCName
     lookahead1W(6);                 // Whitespace | '\\'
     consume(40);                    // '\\'
@@ -1190,12 +1226,12 @@ public class Parser
         break;
       }
     }
-    eventHandler.endNonterminal("Delimiter", e0);
+    eventHandler.endNonterminal(14, e0);
   }
 
   private void parse_Equivalence()
   {
-    eventHandler.startNonterminal("Equivalence", e0);
+    eventHandler.startNonterminal(15, e0);
     consume(17);                    // EquivalenceLookAhead
     lookahead1W(11);                // Whitespace | StringLiteral | '['
     whitespace();
@@ -1205,12 +1241,12 @@ public class Parser
     lookahead1W(11);                // Whitespace | StringLiteral | '['
     whitespace();
     parse_EquivalenceCharRange();
-    eventHandler.endNonterminal("Equivalence", e0);
+    eventHandler.endNonterminal(15, e0);
   }
 
   private void parse_EquivalenceCharRange()
   {
-    eventHandler.startNonterminal("EquivalenceCharRange", e0);
+    eventHandler.startNonterminal(16, e0);
     switch (l1)
     {
     case 5:                         // StringLiteral
@@ -1236,7 +1272,7 @@ public class Parser
       lookahead1(3);                // ']'
       consume(41);                  // ']'
     }
-    eventHandler.endNonterminal("EquivalenceCharRange", e0);
+    eventHandler.endNonterminal(16, e0);
   }
 
   private void consume(int t)
@@ -1244,7 +1280,7 @@ public class Parser
     if (l1 == t)
     {
       whitespace();
-      eventHandler.terminal(TOKEN[l1], b1, e1);
+      eventHandler.terminal(l1, b1, e1);
       b0 = b1; e0 = e1; l1 = l2; if (l1 != 0) {
       b1 = b2; e1 = e2; l2 = l3; if (l2 != 0) {
       b2 = b3; e2 = e3; l3 = 0; }}
@@ -1412,7 +1448,7 @@ public class Parser
         {
           int c1 = end < size ? input.charAt(end) : 0;
           ++end;
-          if (c1 >= 0xd800 && c1 < 0xdc000)
+          if (c1 >= 0xd800 && c1 < 0xdc00)
           {
             ++end;
           }
@@ -1751,7 +1787,7 @@ public class Parser
     /* 292 */ 0
   };
 
-  private static final String[] TOKEN =
+  public static final String[] TOKEN =
   {
     "%ERROR",
     "Whitespace",
@@ -1796,6 +1832,27 @@ public class Parser
     "'\\\\'",
     "']'",
     "'|'"
+  };
+
+  public static final String[] NONTERMINAL =
+  {
+    "Grammar",
+    "ProcessingInstruction",
+    "Production",
+    "Alternatives",
+    "Alternative",
+    "CompositeExpression",
+    "Item",
+    "Primary",
+    "Choice",
+    "NameOrString",
+    "CharClass",
+    "Link",
+    "Option",
+    "Preference",
+    "Delimiter",
+    "Equivalence",
+    "EquivalenceCharRange"
   };
 }
 

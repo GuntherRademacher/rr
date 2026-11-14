@@ -4,7 +4,6 @@
 module namespace t="de/bottlecaps/railroad/xq/transform-ast.xq";
 import module namespace r="de/bottlecaps/railroad/xq/eliminate-recursion.xq" at "eliminate-recursion.xq";
 import module namespace n="de/bottlecaps/railroad/xq/normalize-ast.xq" at "normalize-ast.xq";
-import module namespace b="de/bottlecaps/railroad/xq/ast-to-ebnf.xq" at "ast-to-ebnf.xq";
 declare namespace g="http://www.w3.org/2001/03/XPath/grammar";
 
 (:~
@@ -232,7 +231,6 @@ declare function t:left-factorize($todo as node()*, $done as node()*) as node()*
               return ($oneOrMore, n:wrap-sequence(($choice, $hs)))
         )[position() le 2]
 
-    let $single-child := if (count($children) eq 1) then $children else ()
     let $empty := $children/self::g:sequence[empty(n:children(.))]
     let $non-empty := $children[not(. is $empty)]
     return
@@ -254,7 +252,7 @@ declare function t:left-factorize($todo as node()*, $done as node()*) as node()*
               $left-factor,
               n:choice
               (
-                for $c at $i in $children[position() = $factored]
+                for $c in $children[position() = $factored]
                 return n:wrap-sequence(n:unwrap-sequence($c)[position() gt 1])
               )
             )),
@@ -290,7 +288,7 @@ declare function t:left-factorize($todo as node()*, $done as node()*) as node()*
         let $choice :=
           element g:choice (: no flattening here :)
           {
-            for $c at $i in $children
+            for $c in $children
             let $elements := n:unwrap-sequence($c)
             return
               if (deep-equal($left-factor-oom[1], $elements[1])) then

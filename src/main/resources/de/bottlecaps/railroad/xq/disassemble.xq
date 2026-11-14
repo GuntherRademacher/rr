@@ -3,7 +3,6 @@ module namespace d="de/bottlecaps/railroad/xq/disassemble.xq";
 declare namespace svg="http://www.w3.org/2000/svg";
 declare namespace xhtml="http://www.w3.org/1999/xhtml";
 declare namespace xlink="http://www.w3.org/1999/xlink";
-declare namespace xsl="http://www.w3.org/1999/XSL/Transform";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
 
 declare namespace xf="de/bottlecaps/railroad/core/ExtensionFunctions";

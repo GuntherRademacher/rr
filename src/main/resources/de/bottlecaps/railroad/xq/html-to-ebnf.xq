@@ -130,7 +130,7 @@ declare function e:extract-definitions($html as node()) as element(definition)*
                   if ($spaces < 0) then
                     concat("&#xA;", $indent)
                   else
-                    string-join((for $i in 1 to $spaces return " "), ""),
+                    string-join((1 to $spaces) ! " ", ""),
                 " ::= "
               ),
               element rhs
@@ -145,7 +145,7 @@ declare function e:extract-definitions($html as node()) as element(definition)*
               for $row in ($first-row, $continuation-rows)
               let $comment := e:comment($row/*:td[position() > $definition-cell-index + 1])
               where $comment
-              return element comment{concat("&#xA;  ", $indent, $comment)}
+              return element {"comment"} {concat("&#xA;  ", $indent, $comment)}
             }
         else
           element definition {element lhs {"<?TOKENS?>"}}
@@ -242,7 +242,7 @@ declare function e:notation() as element()
   <table border="0" xmlns="http://www.w3.org/1999/xhtml">
     <tr><td><pre><a name="_Grammar">Grammar</a></pre></td><td><pre> ::= </pre></td><td><pre><a href="#_Production">Production</a>*</pre></td><td>&#xA;</td></tr>
     <tr><td><pre><a name="_Production">Production</a></pre></td><td><pre> ::= </pre></td><td><pre><a href="#_NCName">NCName</a> '::=' ( <a href="#_Choice">Choice</a> | <a href="#_Link">Link</a> )</pre></td><td>&#xA;</td></tr>
-    <tr><td><pre><a name="_NCName">NCName</a></pre></td><td><pre> ::= </pre></td><td><pre>[<a target="_blank" href="http://www.w3.org/TR/xml-names/#NT-NCName">http://www.w3.org/TR/xml-names/#NT-NCName</a>]</pre></td><td>&#xA;</td></tr>
+    <tr><td><pre><a name="_NCName">NCName</a></pre></td><td><pre> ::= </pre></td><td><pre>[<a target="_blank" href="https://www.w3.org/TR/xml-names/#NT-NCName">https://www.w3.org/TR/xml-names/#NT-NCName</a>]</pre></td><td>&#xA;</td></tr>
     <tr><td><pre><a name="_Choice">Choice</a></pre></td><td><pre> ::= </pre></td><td><pre><a href="#_CompositeExpression">CompositeExpression</a> ( '|' <a href="#_CompositeExpression">CompositeExpression</a> )*</pre></td><td>&#xA;</td></tr>
     <tr><td><pre><a name="_CompositeExpression">CompositeExpression</a></pre></td><td><pre> ::= </pre></td><td><pre>( <a href="#_Item">Item</a> ( ( '-' | '**' | '++' ) <a href="#_Item">Item</a> | <a href="#_Item">Item</a>* ) )?</pre></td><td>&#xA;</td></tr>
     <tr><td><pre><a name="_Item">Item</a></pre></td><td><pre> ::= </pre></td><td><pre><a href="#_Primary">Primary</a> ( '?' | '*' | '+' )?</pre></td><td>&#xA;</td></tr>
@@ -250,7 +250,7 @@ declare function e:notation() as element()
     <tr><td><pre><a name="_StringLiteral">StringLiteral</a></pre></td><td><pre> ::= </pre></td><td><pre>'"' [^"]* '"' | "'" [^']* "'"</pre></td><td> /* ws: explicit */&#xA;</td></tr>
     <tr><td><pre><a name="_CharCode">CharCode</a></pre></td><td><pre> ::= </pre></td><td><pre>'#x' [0-9a-fA-F]+</pre></td><td> /* ws: explicit */&#xA;</td></tr>
     <tr><td><pre><a name="_CharClass">CharClass</a></pre></td><td><pre> ::= </pre></td><td><pre>'[' '^'? ( <a href="#_Char">Char</a> | <a href="#_CharCode">CharCode</a> | <a href="#_CharRange">CharRange</a> | <a href="#_CharCodeRange">CharCodeRange</a> )+ ']'</pre></td><td> /* ws: explicit */&#xA;</td></tr>
-    <tr><td><pre><a name="_Char">Char</a></pre></td><td><pre> ::= </pre></td><td><pre>[<a target="_blank" href="http://www.w3.org/TR/xml#NT-Char">http://www.w3.org/TR/xml#NT-Char</a>]</pre></td><td>&#xA;</td></tr>
+    <tr><td><pre><a name="_Char">Char</a></pre></td><td><pre> ::= </pre></td><td><pre>[<a target="_blank" href="https://www.w3.org/TR/xml/#NT-Char">https://www.w3.org/TR/xml/#NT-Char</a>]</pre></td><td>&#xA;</td></tr>
     <tr><td><pre><a name="_CharRange">CharRange</a></pre></td><td><pre> ::= </pre></td><td><pre><a href="#_Char">Char</a> '-' ( <a href="#_Char">Char</a> - ']' )</pre></td><td> /* ws: explicit */&#xA;</td></tr>
     <tr><td><pre><a name="_CharCodeRange">CharCodeRange</a></pre></td><td><pre> ::= </pre></td><td><pre><a href="#_CharCode">CharCode</a> '-' <a href="#_CharCode">CharCode</a></pre></td><td> /* ws: explicit */&#xA;</td></tr>
     <tr><td><pre><a name="_Link">Link</a></pre></td><td><pre> ::= </pre></td><td><pre>'[' <a href="#_URL">URL</a> ']'</pre></td><td>&#xA;</td></tr>
@@ -305,7 +305,7 @@ declare function e:extract($uri as xs:string, $html as node(), $timezoneOffset a
                 (
                   $definitions[position() = index-of($normalized, $normalized[$i])]/comment
                 )
-              return element comment {$c}
+              return element {"comment"} {$c}
             }
           )
     return

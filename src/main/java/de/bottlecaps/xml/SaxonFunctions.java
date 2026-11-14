@@ -27,7 +27,6 @@ import net.sf.saxon.lib.Initializer;
 import net.sf.saxon.om.Item;
 import net.sf.saxon.om.Sequence;
 import net.sf.saxon.om.StructuredQName;
-import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.trans.XPathException;
 import net.sf.saxon.value.BooleanValue;
 import net.sf.saxon.value.EmptySequence;
@@ -287,7 +286,7 @@ public class SaxonFunctions extends ExtensionFunctions implements Initializer
               URLConnection connection = new URL(url).openConnection();
               int responseCode = connection instanceof HttpURLConnection ? ((HttpURLConnection) connection).getResponseCode() : 200;
               String resp = "<" + RESPONSE + " xmlns=\"" + HTTPCLIENT_NAMESPACE + "\" status=\"" + responseCode + "\"/>";
-              result.add(SaxonXQueryProcessor.instance.parseXml(resp, "text/xml").iterateAxis(Axis.CHILD.getAxisNumber()).next());
+              result.add(SaxonXQueryProcessor.instance.parseXml(resp, "text/xml").children().iterator().next());
               InputStream content = (InputStream) connection.getContent();
               String contentType = connection.getContentType();
               if (SaxonXQueryProcessor.isHtml(contentType) || SaxonXQueryProcessor.isXml(contentType))

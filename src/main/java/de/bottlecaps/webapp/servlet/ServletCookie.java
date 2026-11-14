@@ -4,9 +4,9 @@ import de.bottlecaps.webapp.Cookie;
 
 public class ServletCookie implements Cookie
 {
-  private javax.servlet.http.Cookie cookie;
+  private jakarta.servlet.http.Cookie cookie;
 
-  public ServletCookie(javax.servlet.http.Cookie cookie)
+  public ServletCookie(jakarta.servlet.http.Cookie cookie)
   {
     this.cookie = cookie;
   }
