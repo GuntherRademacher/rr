@@ -57,6 +57,30 @@ For listing the full set of available options, run
 ```
 without further command line arguments.
 
+# Light and dark mode
+
+Diagrams and the GUI can be created in light mode, in dark mode, or in auto mode, which
+follows the color scheme of the operating system or browser:
+
+- In the GUI, the mode can be selected on the Options tab. It defaults to auto.
+- In batch mode, the mode is selected by command line option `-mode:auto`, `-mode:light`
+  or `-mode:dark`. It defaults to light. When using the
+  API, the same is done by `RailroadGenerator.setMode`.
+
+Some things to be aware of:
+
+- In auto mode, the output contains CSS media queries (`prefers-color-scheme`), that switch the colors. When
+  displaying SVG graphics from an `<img>` element, like Markdown viewers do, browsers apply the used
+  `color-scheme` of the embedding element to the image. A website that sets `color-scheme: light` or
+  `color-scheme: dark` can therefore select the palette of an auto diagram without separate files. If the theme
+  switch of the website does not expose its selection through `color-scheme`, the image follows the color scheme
+  of the operating system or browser instead. In that case, create light and dark graphics separately, and select
+  them on the website, e.g. by a `<picture>` element.
+- PNG graphics cannot do this, so auto mode is not supported for them. In batch mode, `-png` together with
+  `-mode:auto` is rejected. In the GUI, when PNG is selected for download while the mode is auto, the
+  Download panel asks for light or dark colors, preselected by the current color scheme of the browser.
+  PNG graphics have a transparent background in all modes, so dark mode PNGs are best shown on a dark background.
+
 # Building RR
 For building RR, JDK 17 (or higher) must be available. In the
 project folder, run this command to build the distribution .zip file:

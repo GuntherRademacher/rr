@@ -100,24 +100,22 @@ declare variable $s:page-width := 992;
  : The background color for terminal rectangles.
  :
  : @param $color the base color code.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-1($color as xs:string) {$color};
+declare function s:color-1($color as xs:string, $mode as xs:string) {c:color($color, "terminal-background", 0, $mode)};
 
 (:~
  : The background color for regexp polygons.
  :
  : @param $color the base color code.
  : @param $spread the hue offset.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-regexp($color as xs:string, $spread as xs:integer)
+declare function s:color-regexp($color as xs:string, $spread as xs:integer, $mode as xs:string)
 {
-  if ($spread eq 0) then
-    c:relative-color($color, 1.0, $c:diagram-lightness?regexp?background)
-  else
-    let $hsl := c:rgb-to-hsl($color)
-    return s:color-1(c:rgb(c:hsl-to-rgb(($hsl[1] + 2 * $spread) mod 360, $hsl[2], $hsl[3])))
+  c:color($color, "regexp-background", $spread, $mode)
 };
 
 (:~
@@ -125,47 +123,52 @@ declare function s:color-regexp($color as xs:string, $spread as xs:integer)
  :
  : @param $color the base color code.
  : @param $spread the hue offset.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-nonterminal($color as xs:string, $spread as xs:integer)
+declare function s:color-nonterminal($color as xs:string, $spread as xs:integer, $mode as xs:string)
 {
-  if ($spread eq 0) then
-    c:relative-color($color, 1.0, $c:diagram-lightness?nonterminal?background)
-  else
-    let $hsl := c:rgb-to-hsl($color)
-    return s:color-1(c:rgb(c:hsl-to-rgb(($hsl[1] + $spread) mod 360, $hsl[2], $hsl[3])))
+  c:color($color, "nonterminal-background", $spread, $mode)
 };
 
 (:~
- : The border color for all polygons. Also used for shadows.
+ : The color for lines, including the shadows and arrowheads.
  :
  : @param $color the base color code.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-5($color as xs:string) {c:relative-color($color, 1.0, 0.10)};
+declare function s:color-line($color as xs:string, $mode as xs:string) {c:color($color, "line", 0, $mode)};
+
+(:~
+ : The border color for all rectangles and polygons.
+ :
+ : @param $color the base color code.
+ : @param $mode "light" or "dark" (another value is treated as "light").
+ : @return the rgb color string.
+ :)
+declare function s:color-box-outline($color as xs:string, $mode as xs:string) {c:color($color, "box-outline", 0, $mode)};
 
 (:~
  : The text color for terminal rectangles.
  :
  : @param $color the base color code.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-text-terminal($color as xs:string) {c:relative-color($color, 1.0, $c:diagram-lightness?terminal?text)};
+declare function s:color-text-terminal($color as xs:string, $mode as xs:string) {c:color($color, "terminal-text", 0, $mode)};
 
 (:~
  : The text color for nonterminal rectangles.
  :
  : @param $color the base color code.
  : @parameter $spread the hue offset.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-text-nonterminal($color as xs:string, $spread as xs:integer)
+declare function s:color-text-nonterminal($color as xs:string, $spread as xs:integer, $mode as xs:string)
 {
-  if ($spread eq 0) then
-    c:relative-color($color, 1.0, $c:diagram-lightness?nonterminal?text)
-  else
-    let $hsl := c:rgb-to-hsl($color)
-    return s:color-text-terminal(c:rgb(c:hsl-to-rgb(($hsl[1] + $spread) mod 360, $hsl[2], $hsl[3])))
+  c:color($color, "nonterminal-text", $spread, $mode)
 };
 
 (:~
@@ -173,55 +176,88 @@ declare function s:color-text-nonterminal($color as xs:string, $spread as xs:int
  :
  : @param $color the base color code.
  : @parameter $spread the hue offset.
+ : @param $mode "light" or "dark" (another value is treated as "light").
  : @return the rgb color string.
  :)
-declare function s:color-text-regexp($color as xs:string, $spread as xs:integer)
+declare function s:color-text-regexp($color as xs:string, $spread as xs:integer, $mode as xs:string)
 {
-  if ($spread eq 0) then
-    c:relative-color($color, 1.0, $c:diagram-lightness?regexp?text)
-  else
-    let $hsl := c:rgb-to-hsl($color)
-    return s:color-text-terminal(c:rgb(c:hsl-to-rgb(($hsl[1] + 2 * $spread) mod 360, $hsl[2], $hsl[3])))
+  c:color($color, "regexp-text", $spread, $mode)
+};
+
+(:~
+ : The color for shadows of rectangles and polygons.
+ :
+ : @param $color the base color code.
+ : @param $mode "light" or "dark" (another value is treated as "light").
+ : @return the rgb color string.
+ :)
+declare function s:color-shadow($color as xs:string, $mode as xs:string) {c:color($color, "shadow", 0, $mode)};
+
+(:~
+ : The CSS rules to be generated with SVG graphics, for a single mode. A rule
+ : is a string, it may span multiple lines. The rules for light mode and
+ : dark mode are the same in number and order, so that they can be compared.
+ :
+ : @param $color the base color code.
+ : @param $spread the hue offset.
+ : @param $mode "light" or "dark".
+ : @return the CSS rules.
+ :)
+declare %private function s:rules($color as xs:string, $spread as xs:integer, $mode as xs:string) as xs:string+
+{
+  let $line := s:color-line($color, $mode)
+  let $box-outline := s:color-box-outline($color, $mode)
+  let $shadow := s:color-shadow($color, $mode)
+  let $text-terminal := s:color-text-terminal($color, $mode)
+  let $text-nonterminal := s:color-text-nonterminal($color, $spread, $mode)
+  let $text-regexp := s:color-text-regexp($color, $spread, $mode)
+  return
+  (
+    ``[.line                 {fill: none; stroke: `{$line}`; stroke-width: `{$s:stroke-width}`;}]``,
+    ``[.bold-line            {stroke: `{$text-terminal}`; shape-rendering: crispEdges; stroke-width: 2;}]``,
+    ``[.thin-line            {stroke: `{$text-regexp}`; shape-rendering: crispEdges}]``,
+    ``[.filled               {fill: `{$line}`; stroke: none;}]``,
+    ``[text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: `{$s:font-size}`px;
+                            fill: `{$text-terminal}`;
+                            font-weight: bold;
+                          }]``,
+    ``[text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: `{$s:font-size}`px;
+                            fill: `{$text-nonterminal}`;
+                            font-weight: normal;
+                          }]``,
+    ``[text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: `{$s:font-size}`px;
+                            fill: `{$text-regexp}`;
+                            font-weight: normal;
+                          }]``,
+    ``[rect, circle, polygon {fill: `{$line}`; stroke: `{$line}`;}]``,
+    ``[.shadow               {fill: `{$shadow}`; stroke: `{$shadow}`;}]``,
+    ``[rect.terminal         {fill: `{s:color-1($color, $mode)}`; stroke: `{$box-outline}`; stroke-width: `{$s:stroke-width}`;}]``,
+    ``[rect.nonterminal      {fill: `{s:color-nonterminal($color, $spread, $mode)}`; stroke: `{$box-outline}`; stroke-width: `{$s:stroke-width}`;}]``,
+    ``[rect.text             {fill: none; stroke: none;}]``,
+    ``[polygon.regexp        {fill: `{s:color-regexp($color, $spread, $mode)}`; stroke: `{$box-outline}`; stroke-width: `{$s:stroke-width}`;}]``
+  )
 };
 
 (:~
  : The style element to be generated with SVG graphics.
  :
- : //... ; stroke-dasharray: 1, 1}}
+ : For mode "auto", the rules for light mode are followed by a media query
+ : for dark color schemes, that overrides those rules that differ in dark mode.
  :
  : @param $color the base color code.
  : @param $spread the hue offset.
+ : @param $mode "light", "dark" or "auto".
  : @return the style element.
  :)
-declare function s:style($color as xs:string, $spread as xs:integer)
+declare function s:style($color as xs:string, $spread as xs:integer, $mode as xs:string)
 {
-  <style type="text/css">
-    @namespace "http://www.w3.org/2000/svg";
-    .line                 {{fill: none; stroke: {s:color-5($color)}; stroke-width: {$s:stroke-width};}}
-    .bold-line            {{stroke: {s:color-text-terminal($color)}; shape-rendering: crispEdges; stroke-width: 2;}}
-    .thin-line            {{stroke: {s:color-text-regexp($color, $spread)}; shape-rendering: crispEdges}}
-    .filled               {{fill: {s:color-5($color)}; stroke: none;}}
-    text.terminal         {{font-family: Verdana, Sans-serif;
-                            font-size: {$s:font-size}px;
-                            fill: {s:color-text-terminal($color)};
-                            font-weight: bold;
-                          }}
-    text.nonterminal      {{font-family: Verdana, Sans-serif;
-                            font-size: {$s:font-size}px;
-                            fill: {s:color-text-nonterminal($color, $spread)};
-                            font-weight: normal;
-                          }}
-    text.regexp           {{font-family: Verdana, Sans-serif;
-                            font-size: {$s:font-size}px;
-                            fill: {s:color-text-regexp($color, $spread)};
-                            font-weight: normal;
-                          }}
-    rect, circle, polygon {{fill: {s:color-5($color)}; stroke: {s:color-5($color)};}}
-    rect.terminal         {{fill: {s:color-1($color)}; stroke: {s:color-5($color)}; stroke-width: {$s:stroke-width};}}
-    rect.nonterminal      {{fill: {s:color-nonterminal($color, $spread)}; stroke: {s:color-5($color)}; stroke-width: {$s:stroke-width};}}
-    rect.text             {{fill: none; stroke: none;}}
-    polygon.regexp        {{fill: {s:color-regexp($color, $spread)}; stroke: {s:color-5($color)}; stroke-width: {$s:stroke-width};}}
-  </style>
+  <style type="text/css">{
+    "&#xA;    @namespace ""http://www.w3.org/2000/svg"";" ||
+    style:to-css(style:for-modes($mode, function($m) {s:rules($color, $spread, $m)}))
+  }</style>
 };
 
 (:~
@@ -378,7 +414,7 @@ declare function s:rect($x, $y, $text, $style, $class)
                          } {$x0 + 2 - 7 + $text-width},{$y + 2
                          } {$x0 + 2     + $text-width},{$y + 2 +     $s:rect-height
                          } {$x0 + 2 - 7 + $text-width},{$y + 2 + 2 * $s:rect-height
-                         } {$x0 + 2 + 7              },{$y + 2 + 2 * $s:rect-height}"/>
+                         } {$x0 + 2 + 7              },{$y + 2 + 2 * $s:rect-height}" class="shadow"/>
         else
           (),
         <polygon points="{$x0                  },{$y +     $s:rect-height
@@ -417,7 +453,7 @@ declare function s:rect($x, $y, $text, $style, $class)
     else
     (
       if ($s:shadow) then
-        <rect x="{$x + 2 + $s:stub-width}" y="{$y + 2}" width="{$text-width}" height="{2 * $s:rect-height}">
+        <rect x="{$x + 2 + $s:stub-width}" y="{$y + 2}" width="{$text-width}" height="{2 * $s:rect-height}" class="shadow">
         {
           attribute rx {$s:padding} [$class = "terminal"]
         }
@@ -1017,11 +1053,12 @@ declare function s:render-production($p as element(g:production)) as node()*
  :
  : @param $color the base color code.
  : @param $spread the hue offset.
+ : @param $mode "light", "dark" or "auto".
  : @return the svg element containing the defs.
  :)
-declare function s:defs($color as xs:string, $spread as xs:integer)
+declare function s:defs($color as xs:string, $spread as xs:integer, $mode as xs:string)
 {
-  <svg xmlns="http://www.w3.org/2000/svg"><defs>{s:style($color, $spread)}</defs></svg>
+  <svg xmlns="http://www.w3.org/2000/svg"><defs>{s:style($color, $spread, $mode)}</defs></svg>
 };
 
 (:~
@@ -1041,10 +1078,11 @@ declare function s:defs($color as xs:string, $spread as xs:integer)
  : @param $page-width where to break for a new line, in pixels.
  : @param $color the base color code.
  : @param $spread the hue offset.
+ : @param $mode "light", "dark" or "auto".
  : @param $with-defs whether to include svg:defs.
  : @return the corresponding graphics element.
  :)
-declare function s:convert-to-svg($p as element(g:production), $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $with-defs as xs:boolean) as element(svg:svg)
+declare function s:convert-to-svg($p as element(g:production), $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $mode as xs:string, $with-defs as xs:boolean) as element(svg:svg)
 {
   let $normalized := n:normalize($p, true())
   let $rendered := s:line-break($page-width, 0, 0, (), (), s:render-production(n:introduce-separators($normalized)))
@@ -1056,7 +1094,7 @@ declare function s:convert-to-svg($p as element(g:production), $page-width as xs
          xmlns:xlink="http://www.w3.org/1999/xlink"
          width="{$width + 1}" height="{$height + 1}">
       {
-        <defs>{s:style($color, $spread)}</defs>[$with-defs],
+        <defs>{s:style($color, $spread, $mode)}</defs>[$with-defs],
         s:translate(1 - xs:integer($dimensions/@x1), 1 - xs:integer($dimensions/@y1), $rendered)
       }
     </svg>
@@ -1430,16 +1468,17 @@ declare function s:process-annotations($nodes as node()*) as node()*
  :
  : @param $color the color code.
  : @param $spread the hue offset.
+ : @param $mode "light", "dark" or "auto".
  : @param $page-width the page width.
  : @param $extra-css additional css:style content.
  : @return the list of standard xhtml head entries.
  :)
-declare function s:head($color as xs:string, $spread as xs:integer, $page-width as xs:integer?, $extra-css as xs:string?) as element()+
+declare function s:head($color as xs:string, $spread as xs:integer, $mode as xs:string, $page-width as xs:integer?, $extra-css as xs:string?) as element()+
 {
   <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" xmlns="http://www.w3.org/1999/xhtml"/>,
   <meta name="generator" content="Railroad Diagram Generator {$s:version}" xmlns="http://www.w3.org/1999/xhtml"/>,
-  <style type="text/css" xmlns="http://www.w3.org/1999/xhtml">{style:css($color, $page-width), $extra-css}</style>,
-  s:defs($color, $spread)
+  <style type="text/css" xmlns="http://www.w3.org/1999/xhtml">{style:css($color, $mode, $page-width), $extra-css}</style>,
+  s:defs($color, $spread, $mode)
 };
 
 (:~
@@ -1453,11 +1492,12 @@ declare function s:head($color as xs:string, $spread as xs:integer, $page-width 
  : @param $page-width where to break for a new line, in pixels.
  : @param $color the base color code.
  : @param $spread the hue offset.
+ : @param $mode "light", "dark" or "auto".
  : @param $with-defs whether to include svg:defs.
  : @param $uri the rr generator link.
  : @return a list of XHTML elements and processing-instructions.
  :)
-declare function s:svg($grammar as element(g:grammar), $showEbnf as xs:boolean, $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $with-defs as xs:boolean, $uri as xs:string) as node()*
+declare function s:svg($grammar as element(g:grammar), $showEbnf as xs:boolean, $page-width as xs:integer, $color as xs:string, $spread as xs:integer, $mode as xs:string, $with-defs as xs:boolean, $uri as xs:string) as node()*
 {
   let $g := n:group-productions-by-nonterminal($grammar)
   let $productions := $g//g:production
@@ -1469,7 +1509,7 @@ declare function s:svg($grammar as element(g:grammar), $showEbnf as xs:boolean, 
     for $production in $productions
     let $p := s:process-annotations($production)
     let $anchor := data($p/@name)
-    let $svg := s:combine-paths(s:convert-to-svg($p, $page-width, $color, $spread, $with-defs))
+    let $svg := s:combine-paths(s:convert-to-svg($p, $page-width, $color, $spread, $mode, $with-defs))
     let $references :=
       for $ref in $g/g:production[.//g:ref/@name = $anchor]/@name
       order by $ref

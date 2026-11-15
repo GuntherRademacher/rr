@@ -61,12 +61,25 @@ public class RailroadGenerator
   private boolean keepEpsilon = true;
   private Color baseColor;
   private int colorOffset;
+  private String mode = "light";
   private Integer padding;
   private Integer strokeWidth;
   private Integer width;
 
   /** Default constructor. */
   public RailroadGenerator() {
+  }
+
+  /**
+   * Check that the settings are consistent. This is done by {@link #generate(String)} anyway, but can be
+   * called earlier, to find out before doing anything else.
+   * @throws IllegalStateException if the color mode is {@code "auto"} and the graphics format is
+   *         {@link GraphicsFormat#PNG}
+   */
+  public void validate()
+  {
+    if (graphicsFormat == GraphicsFormat.PNG && "auto".equals(mode))
+      throw new IllegalStateException("color mode auto is not supported for PNG graphics, use light or dark");
   }
 
   /**
@@ -94,7 +107,10 @@ public class RailroadGenerator
         "declare variable $width external;\n" +
         "declare variable $color external;\n" +
         "declare variable $spread external;\n" +
-        "i:ebnf-to-xhtml($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, '" + RR_URL + "')";
+        "declare variable $mode external;\n" +
+        "i:ebnf-to-xhtml($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, $mode, '" + RR_URL + "')";
+
+    validate();
 
     Map<String, Object> externalVars = new HashMap<>();
     externalVars.put("ebnf", grammar);
@@ -106,6 +122,7 @@ public class RailroadGenerator
     externalVars.put("width", width);
     externalVars.put("color", baseColor == null ? null : toHexString(baseColor));
     externalVars.put("spread", colorOffset);
+    externalVars.put("mode", mode);
     externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}version", RailroadVersion.VERSION);
     externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}java-version", Download.javaVersion());
     externalVars.put("{de/bottlecaps/railroad/xq/ast-to-svg.xq}date", RailroadVersion.DATE);
@@ -257,6 +274,23 @@ public class RailroadGenerator
   public void setColorOffset(int colorOffset)
   {
     this.colorOffset = colorOffset;
+  }
+
+  /**
+   * Sets the color mode.
+   * @param mode the color mode, one of {@code "light"}, {@code "dark"} or {@code "auto"}, defaults to {@code "light"}.
+   *        Mode {@code "auto"} follows the color scheme of the operating system or browser, by means of a CSS media
+   *        query. PNG graphics cannot do that, so {@code "auto"} is not supported for graphics format
+   *        {@link GraphicsFormat#PNG}, and generating fails with an {@link IllegalStateException}.
+   * @throws IllegalArgumentException if the mode is none of the above
+   */
+  public void setMode(String mode)
+  {
+    if (! "light".equals(mode) && ! "dark".equals(mode) && ! "auto".equals(mode))
+    {
+      throw new IllegalArgumentException("invalid mode: " + mode);
+    }
+    this.mode = mode;
   }
 
   /**

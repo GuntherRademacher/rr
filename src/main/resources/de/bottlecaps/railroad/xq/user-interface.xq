@@ -194,6 +194,7 @@ declare function ui:html($tab as xs:string,
                                         $color as xs:string) as element()
 {
   let $spread :=  xs:integer(ui:parameter-values("spread", "0"))
+  let $mode := ui:mode()
   let $width := xs:integer(ui:parameter-values("width", string($s:page-width)))
   let $download-options := ui:download-options()
   return
@@ -207,13 +208,13 @@ declare function ui:html($tab as xs:string,
     {
       if (xf:parameter-values($ui:request, "frame") = "diagram") then
       (
-        <head>{s:head($color, $spread, $width, ())}</head>,
+        <head>{s:head($color, $spread, $mode, $width, ())}</head>,
         <body>{$errorlog}</body>
       )
       else
       (
       <head>
-        {s:head($color, $spread, $width, style:ui-css($color))}
+        {s:head($color, $spread, $mode, $width, style:ui-css($color, $mode))}
         <link href="favicon.ico" rel="shortcut icon"/>
         <title>Railroad Diagram Generator</title>
         <script src="ace.js" type="text/javascript" charset="utf-8"/>
@@ -270,8 +271,14 @@ declare function ui:html($tab as xs:string,
             <tr>
               <td colspan="2" id="explain" style="font-size: 9px; line-height: 11px; height: 45px;"/>
             </tr>
-            <tr>
-              <td colspan="2"><small>&#xA;</small></td>
+            <tr id="png-mode-row" style="display: none;">
+              <td colspan="2" style="font-size: 11px;" title="PNG graphics cannot follow the color scheme of the viewer.&#10;Select the colors to be used.">
+                <nobr>
+                  PNG colors:&#160;
+                  <label><input type="radio" name="png-mode-choice" value="light" onchange="setDownloadOptions();"/>&#160;Light</label>&#160;
+                  <label><input type="radio" name="png-mode-choice" value="dark" onchange="setDownloadOptions();"/>&#160;Dark</label>
+                </nobr>
+              </td>
             </tr>
             <tr>
               <td colspan="2"><small>&#xA;</small></td>
@@ -289,6 +296,7 @@ declare function ui:html($tab as xs:string,
           <input type="hidden" name="time" id="time" value="{xf:parameter-values($ui:request, "time")}"/>
           <input type="hidden" name="color" value="{ui:color()}" style="width: 32px"/>
           <input type="hidden" name="download-options" id="download-options" value=""/>
+          <input type="hidden" name="png-mode" id="png-mode" value=""/>
 
           <script type="text/javascript">var {$ui:WELCOME} = 0;</script>
           <script type="text/javascript">var {$ui:GET}     = 1;</script>
@@ -435,23 +443,43 @@ declare function ui:html($tab as xs:string,
                         </g:choice>
                       </g:production>
                     </g:grammar>
-                  let $preview-color := s:color-1($style:default-color)
+                  let $preview-color := s:color-1($style:default-color, "light")
                   let $previewHtml :=
                   (
-                    <style type="text/css">
-                      #preview
-                      {{
-                        color: {style:color-foreground($preview-color)};
-                        background: {style:color-background($preview-color)};
-                      }}
-                      #preview div.ebnf
-                      {{
-                        background: {style:color-bg-hilite($preview-color)};
-                        padding-right: 0px;
-                        width: 95%;
-                      }}
-                    </style>,
-                    s:svg($previewAst, true(), $s:page-width, $preview-color, 0, true(), "/")[position() <= 5]
+                    <style type="text/css">{
+                      style:to-css
+                      (
+                        style:for-modes
+                        (
+                          "auto",
+                          function($m)
+                          {
+                            (
+                        ``[#preview
+                        {
+                          color: `{style:color-foreground($preview-color, $m)}`;
+                          background: `{style:color-background($preview-color, $m)}`;
+                        }]``,
+                        ``[#preview div.ebnf
+                        {
+                          background: `{style:color-bg-hilite($preview-color, $m)}`;
+                          padding-right: 0px;
+                          width: 95%;
+                        }]``,
+                        ``[#preview a:link, #preview a:visited
+                        {
+                          color: `{style:color-foreground($preview-color, $m)}`;
+                        }]``,
+                        ``[#preview div.ebnf a:hover
+                        {
+                          color: `{style:color-fg-hilite($preview-color, $m)}`;
+                        }]``
+                            )
+                          }
+                        )
+                      )
+                    }</style>,
+                    s:svg($previewAst, true(), $s:page-width, $preview-color, 0, "auto", true(), "/")[position() <= 5]
                   )
                   let $palette :=
                     <tr class="palette">
@@ -489,12 +517,12 @@ declare function ui:html($tab as xs:string,
                                       (: $previewHtml[position() > $previewEbnf], :)
                                       if ($c:debug) then
                                         <table>{
-                                          for $rgb in (s:color-1($preview-color),
-                                                       s:color-nonterminal($preview-color, 0),
-                                                       s:color-regexp($preview-color, 0),
-                                                       style:color-background($preview-color),
-                                                       style:color-bg-hilite($preview-color),
-                                                       style:color-foreground($preview-color)
+                                          for $rgb in (s:color-1($preview-color, $mode),
+                                                       s:color-nonterminal($preview-color, 0, $mode),
+                                                       s:color-regexp($preview-color, 0, $mode),
+                                                       style:color-background($preview-color, $mode),
+                                                       style:color-bg-hilite($preview-color, $mode),
+                                                       style:color-foreground($preview-color, $mode)
                                                       )
                                           let $r-g-b := for $x in c:r-g-b($rgb) return string($x)
                                           let $title := concat($rgb, "  rgb(", $r-g-b[1], ",", $r-g-b[2], ",", $r-g-b[3], ")")
@@ -593,6 +621,18 @@ declare function ui:html($tab as xs:string,
                                 <nobr>
                                   <a href="javascript:" class="button" onmousedown="scheduleIncrement('spread', -1, 0, 359)" onmouseout="cancelIncrement()" onmouseup="cancelIncrement()"><b>&lt;</b></a>&#32;
                                   <a href="javascript:" class="button" onmousedown="scheduleIncrement('spread', +1, 0, 359)" onmouseout="cancelIncrement()" onmouseup="cancelIncrement()"><b>&gt;</b></a>
+                                </nobr>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td/>
+                              <td/>
+                              <td style="height: 1;"><b>Mode</b></td>
+                              <td colspan="2">
+                                <nobr>
+                                  <label title="Follow the setting of the operating system or browser"><input type="radio" name="mode" value="auto" onclick="preview();">{ if ($mode = "auto") then attribute checked {true()} else () }</input>&#160;<b>Auto</b></label>&#160;&#160;
+                                  <label title="Always use light colors"><input type="radio" name="mode" value="light" onclick="preview();">{ if ($mode = "light") then attribute checked {true()} else () }</input>&#160;<b>Light</b></label>&#160;&#160;
+                                  <label title="Always use dark colors"><input type="radio" name="mode" value="dark" onclick="preview();">{ if ($mode = "dark") then attribute checked {true()} else () }</input>&#160;<b>Dark</b></label>
                                 </nobr>
                               </td>
                             </tr>
@@ -782,7 +822,7 @@ declare function ui:html($tab as xs:string,
             ui:javascript($ui:EDIT, true())
           else
             ui:javascript($tab, false()),
-          ui:spinner($color)
+          ui:spinner($color, $mode)
         }
       </body>
       )
@@ -800,6 +840,7 @@ declare function ui:html($tab as xs:string,
  :)
 declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean) as element(xhtml:script)
 {
+  let $mode := ui:mode()
   let $colors :=
     string-join
     (
@@ -820,6 +861,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     var textChanged = document.getElementById("textChanged");
     var oldColor = document.getElementsByName("color")[0].value;
     var oldSpread = document.getElementsByName("spread")[0].value;
+    var oldMode = selectedMode();
     var tabs = document.getElementsByName("tab");
     var divs = getElementChildren(document.getElementById("divs"));
     var uri = document.getElementById("uri");
@@ -902,7 +944,8 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
     function tab(t)
     {{
       var colorChanged = oldColor != document.getElementsByName("color")[0].value
-                      || oldSpread != document.getElementsByName("spread")[0].value;
+                      || oldSpread != document.getElementsByName("spread")[0].value
+                      || oldMode != selectedMode();
       var next = t == active ? null
                : t == {$ui:EDIT} ? "{$ui:EDIT}"
                : t == {$ui:VIEW} ? "{$ui:VIEW}"
@@ -1074,6 +1117,21 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       var graphicsFormat = document.querySelector('input[name="graphics-format"]:checked');
       var graphicsFormatValue = graphicsFormat == null ? "svg" : graphicsFormat.value;
       var embedded = document.getElementById("embedded");
+      var pngMode = "";
+      var pngChoice = "{$mode}" == "auto" &amp;&amp; graphicsFormatValue === "png";
+      document.getElementById("png-mode-row").style.display = pngChoice ? "" : "none";
+      if (pngChoice)
+      {{
+        var chosen = document.querySelector('input[name="png-mode-choice"]:checked');
+        if (chosen == null)
+        {{
+          var dark = window.matchMedia &amp;&amp; window.matchMedia("(prefers-color-scheme: dark)").matches;
+          chosen = document.querySelector('input[name="png-mode-choice"][value="' + (dark ? "dark" : "light") + '"]');
+          chosen.checked = true;
+        }}
+        pngMode = chosen.value;
+      }}
+      document.getElementById("png-mode").value = pngMode;
       embedded.closest("td").style.display = textFormatValue === "none" ? "none" : "";
       var explanation = "Current choice: download a ";
       if (textFormatValue === "none" || ! embedded.checked)
@@ -1091,6 +1149,8 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
           explanation += " file with";
       }}
       explanation += " " + graphicsFormatValue.toUpperCase() + " graphics";
+      if (pngMode != "")
+        explanation += " (" + pngMode + " colors)";
       if (textFormatValue === "none")
       {{
         explanation += " files.";
@@ -1276,10 +1336,45 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         previewHtml += document.getElementById("preview-html-2").value;
       }}
       previewHtml += document.getElementById("preview-html-3").value;
-      document.getElementById("preview").innerHTML = replaceColors(previewHtml, colorToHsl(color), false);
+      var baseColor = color.substring(0, 7);
+      var spread = Number(document.getElementsByName("spread")[0].value);
+      document.getElementById("preview").innerHTML = applyPreviewMode(recolorDiagram(previewHtml, baseColor, spread));
       var paletteHtml = document.getElementById("palette-html").value;
-      document.getElementById("palette").innerHTML = replaceColors(paletteHtml, colorToHsl(color), true);
+      document.getElementById("palette").innerHTML = recolorHues(paletteHtml, baseColor);
       setCookies();
+    }}
+
+    function selectedMode()
+    {{
+      var modes = document.getElementsByName("mode");
+      for (var i = 0; i &lt; modes.length; ++i)
+      {{
+        if (modes[i].checked)
+        {{
+          return modes[i].value;
+        }}
+      }}
+      return "auto";
+    }}
+
+    function selectMode(mode)
+    {{
+      var modes = document.getElementsByName("mode");
+      for (var i = 0; i &lt; modes.length; ++i)
+      {{
+        modes[i].checked = modes[i].value == mode;
+      }}
+    }}
+
+    /* The preview is created for mode auto, which uses a media query for dark color schemes. For the modes light
+       and dark, this is made to never or always apply. */
+    function applyPreviewMode(html)
+    {{
+      var query = "@media (prefers-color-scheme: dark)";
+      var mode = selectedMode();
+      return mode == "dark" ? html.split(query).join("@media all")
+           : mode == "light" ? html.split(query).join("@media not all")
+           : html;
     }}
 
     function setCookies()
@@ -1307,33 +1402,32 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       document.cookie = "width=" + width + attributes;
       var spread = document.getElementById("spread").value;
       document.cookie = "spread=" + spread + attributes;
+      document.cookie = "mode=" + selectedMode() + attributes;
       var download = document.getElementById("download-options").value;
       document.cookie = "download-options=" + download + attributes;
     }}
 
-    function rgbToHsl(r, g, b)
+    /* The common RGB to HSL calculation. Returns the hue in degrees, which is not normalized and not rounded,
+       saturation and lightness. */
+    function rgbToHslRaw(r, g, b)
     {{
       r /= 255, g /= 255, b /= 255;
       var max = Math.max(r, g, b), min = Math.min(r, g, b);
-      var h, s, l = (max + min) / 2;
+      if (max == 0) return [0, 0, 0];
+      var d = max - min;
+      var h = d == 0 ? 0
+            : max == r ? (g - b) / d
+            : max == g ? 2 + (b - r) / d
+            :            4 + (r - g) / d;
+      var s = 1 - Math.abs(max + min - 1) == 0 ? 0 : d / (1 - Math.abs(max + min - 1));
+      return [h * 60, s, (max + min) / 2];
+    }}
 
-      if (max == min)
-      {{
-        h = s = 0;
-      }}
-      else
-      {{
-        var d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch(max)
-        {{
-        case r: h = (g - b) / d + (g &lt; b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
-        }}
-        h *= 60;
-      }}
-      return [Math.round(h), Math.round(s * 100) / 100, Math.round(l * 100) / 100];
+    /* HSL for display, rounded: hue to degrees, saturation and lightness to two decimals. */
+    function rgbToHsl(r, g, b)
+    {{
+      var hsl = rgbToHslRaw(r, g, b);
+      return [Math.round(hsl[0] &lt; 0 ? hsl[0] + 360 : hsl[0]), Math.round(hsl[1] * 100) / 100, Math.round(hsl[2] * 100) / 100];
     }}
 
     function hue2rgb(p, q, t)
@@ -1363,107 +1457,118 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         g = hue2rgb(p, q, h);
         b = hue2rgb(p, q, h - 1/3);
       }}
-      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+      var clamp = function(x) {{ return Math.max(0, Math.min(255, Math.round(x * 255))); }};
+      return [clamp(r), clamp(g), clamp(b)];
     }}
 
-    function approx(a, b) {{ return Math.abs(a - b) &lt; 0.005; }}
+    var colorRoles = {c:roles-json()};
+    var rolePalette = {c:palette-json($style:default-color)};
+    var lightTextLightness = {$c:light-text-lightness};
 
-    var diagram_lightness = [
-      {{ text: {$c:diagram-lightness?terminal   ?text}, background: {$c:diagram-lightness?terminal   ?background} }},
-      {{ text: {$c:diagram-lightness?nonterminal?text}, background: {$c:diagram-lightness?nonterminal?background} }},
-      {{ text: {$c:diagram-lightness?regexp     ?text}, background: {$c:diagram-lightness?regexp     ?background} }}
-    ];
-
-    function backgroundLightnessFor(textL)
+    /* HSL for palette calculations, as c:rgb-to-hsl in color.xq: the hue is rounded to whole degrees, the other
+       values are not rounded. */
+    function rgbToHslExact(color)
     {{
-      for (var i = 0; i &lt; diagram_lightness.length; i++)
+      var c = parseInt(color.substring(1, 7), 16);
+      var hsl = rgbToHslRaw(c >> 16, (c >> 8) &amp; 0xff, c &amp; 0xff);
+      return [Math.floor((hsl[0] + 360 + 0.5) % 360), hsl[1], hsl[2]];
+    }}
+
+    /* Find the role of a color in the palette of the base color, in the mode of the page when ambiguous. */
+    function findRole(color, dark)
+    {{
+      var entries = rolePalette[color.toUpperCase()];
+      if (! entries) return null;
+      for (var i = 0; i &lt; entries.length; i++)
       {{
-        var p = diagram_lightness[i];
-        if (approx(p.text, textL)) return p.background;
+        if (entries[i].dark === dark) return entries[i];
       }}
-      return null;
+      return entries[0];
     }}
 
-    function isBackgroundLightness(lightness)
+    /* Keep track of being inside the media query for dark color schemes, while scanning CSS text. */
+    function scanStyle(state, text)
     {{
-      for (var i = 0; i &lt; diagram_lightness.length; i++)
+      var re = /@media \(prefers-color-scheme: dark\)|[{{}}]/g;
+      var m;
+      while ((m = re.exec(text)) !== null)
       {{
-        if (approx(diagram_lightness[i].background, lightness)) return true;
-      }}
-      return false;
-    }}
-
-    function isBorderLightness(lightness)
-    {{
-      return approx(0.10, lightness);
-    }}
-
-    var darkMode = true;
-
-    function convertColor(roleColor, baseHsl)	
-    {{
-      var spread = Number(document.getElementsByName("spread")[0].value);
-
-      if (spread !== 0)
-      {{
-        if (roleColor === "{s:color-regexp($style:default-color, 0)}")
+        if (m[0] === "{{")
         {{
-          baseHsl = [(baseHsl[0] + 2 * spread) % 360, baseHsl[1], baseHsl[2]];
-          roleColor = "{$style:default-color}";
+          state.depth++;
+          if (state.pending)
+          {{
+            state.darkDepth = state.depth;
+            state.pending = false;
+          }}
         }}
-        else if (roleColor === "{s:color-text-regexp($style:default-color, 0)}")
+        else if (m[0] === "}}")
         {{
-          baseHsl = [(baseHsl[0] + 2 * spread) % 360, baseHsl[1], baseHsl[2]];
-          roleColor = "{s:color-text-terminal($style:default-color)}";
+          if (state.depth === state.darkDepth) state.darkDepth = -1;
+          state.depth--;
         }}
-        else if (roleColor === "{s:color-nonterminal($style:default-color, 0)}")
+        else
         {{
-          baseHsl = [(baseHsl[0] + spread) % 360, baseHsl[1], baseHsl[2]];
-          roleColor = "{$style:default-color}";
-        }}
-        else if (roleColor === "{s:color-text-nonterminal($style:default-color, 0)}")
-        {{
-          baseHsl = [(baseHsl[0] + spread) % 360, baseHsl[1], baseHsl[2]];
-          roleColor = "{s:color-text-terminal($style:default-color)}";
+          state.pending = true;
         }}
       }}
+    }}
 
-      var c = parseInt(roleColor.substring(1), 16);
-      var r = c >> 16;
-      var g = (c >> 8) &amp; 0xff;
-      var b = c &amp; 0xff;
-      var roleHsl = rgbToHsl(r, g, b);
-      var roleSaturation = roleHsl[1];
-      var roleLightness = roleHsl[2];
+    /* The base color and hue offset of a palette, with the HSL of the base color calculated once. */
+    function createPalette(baseColor, spread)
+    {{
+      return {{ baseColor: baseColor, spread: spread, hsl: rgbToHslExact(baseColor) }};
+    }}
 
+    /* The color of a role in a palette, this corresponds to c:role-color in color.xq. */
+    function roleColor(role, palette, dark)
+    {{
+      var shift = role["hue-shift"] * palette.spread;
+      if (shift === 0)
+      {{
+        return deriveColor(role, palette.baseColor, palette.hsl, dark);
+      }}
+      var hsl = palette.hsl;
+      var shifted = rgb(hslToRgb((hsl[0] + shift) % 360, hsl[1], hsl[2]));
+      return role.kind === "text"
+           ? deriveColor(colorRoles["terminal-text"], shifted, rgbToHslExact(shifted), dark)
+           : shifted;
+    }}
+
+    /* This corresponds to c:derive-color in color.xq. */
+    function deriveColor(role, baseColor, baseHsl, dark)
+    {{
+      if (role.kind === "base")
+      {{
+        return baseColor;
+      }}
+      var mode = dark ? "dark" : "light";
       var baseHue = baseHsl[0];
       var baseSaturation = baseHsl[1];
       var baseLightness = baseHsl[2];
-      var targetSaturation = baseSaturation * roleSaturation;
-      var backgroundLightness = backgroundLightnessFor(roleLightness);
-      if (backgroundLightness !== null)
+      var targetSaturation = baseSaturation * role.saturation;
+      var roleLightness = role.lightness[mode];
+      if (role.kind === "text")
       {{
-        var targetBackgroundLightness = convertLightness(baseLightness, backgroundLightness, 1.0);
-        var backgroundBrightness = brightness(hslToRgb(baseHue, targetSaturation, targetBackgroundLightness));
-        var darkTextLightness  = convertLightness(baseLightness, roleLightness, 1.0);
-        var lightTextLightness = convertLightness(baseLightness, 0.94, 1.0);
-        var dark  = hslToRgb(baseHue, targetSaturation, darkTextLightness);
-        var light = hslToRgb(baseHue, targetSaturation, lightTextLightness);
-        return Math.abs(brightness(dark)  - backgroundBrightness) >
-               Math.abs(brightness(light) - backgroundBrightness)
-             ? rgb(dark) : rgb(light);
+        var backgroundRole = colorRoles[role.on];
+        var backgroundLightness = backgroundRole.lightness[mode];
+        var targetBackgroundLightness = convertLightness(baseLightness, backgroundLightness, backgroundRole.saturation);
+        var backgroundBrightness = brightness(hslToRgb(baseHue, baseSaturation * backgroundRole.saturation, targetBackgroundLightness));
+        var darkText  = hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, roleLightness, 1.0));
+        var lightText = hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, lightTextLightness, 1.0));
+        return Math.abs(brightness(darkText)  - backgroundBrightness) &gt;
+               Math.abs(brightness(lightText) - backgroundBrightness)
+             ? rgb(darkText) : rgb(lightText);
       }}
-      else
-      {{
-        var modeLightness = (isBackgroundLightness(roleLightness) || ! darkMode)
-          ? roleLightness
-          : isBorderLightness(roleLightness)
-              ? 0.2
-              : 1 - roleLightness;
+      return rgb(hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, roleLightness, role.saturation)));
+    }}
 
-        var targetLightness = convertLightness(baseLightness, modeLightness, roleSaturation);
-        return rgb(hslToRgb(baseHue, targetSaturation, targetLightness));
-      }}
+    /* Convert a color of the palette of the default base color to the same role in another palette.
+       Colors that are not in the palette are not changed. */
+    function convertColor(color, palette, dark)
+    {{
+      var entry = findRole(color, dark);
+      return entry === null ? color : roleColor(colorRoles[entry.role], palette, entry.dark);
     }}
 
     function convertLightness(baseL, roleL, roleS)
@@ -1506,21 +1611,48 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       };
     }}
 
-    function replaceColors(string, newHsl, keepHue)
+    /* Convert the colors of a diagram that has been created for the default base color to the palette of another
+       base color. Colors in the media query for dark color schemes are converted for dark mode. */
+    function recolorDiagram(string, baseColor, spread)
     {{
+      var palette = createPalette(baseColor, spread);
       var newString = null;
       var parts = string.split(/#/);
+      var state = {{ pending: false, depth: 0, darkDepth: -1 }};
       for (var i in parts)
       {{
         var part = parts[i];
         if (newString == null)
+        {{
           newString = part;
+          scanStyle(state, part);
+        }}
         else if (! part.match(/^[0-9a-f]{{6}}/i))
+        {{
           newString += "#" + part;
-        else if (keepHue)
-          newString += rgb(hslToRgb(colorToHsl("#" + part.substring(0, 6))[0], newHsl[1], newHsl[2])) + part.substring(6);
+          scanStyle(state, part);
+        }}
         else
-          newString += convertColor("#" + part.substring(0, 6), newHsl) + part.substring(6);
+        {{
+          newString += convertColor("#" + part.substring(0, 6), palette, state.darkDepth >= 0) + part.substring(6);
+          scanStyle(state, part.substring(6));
+        }}
+      }}
+      return newString;
+    }}
+
+    /* Give the hue swatches the saturation and lightness of the base color. */
+    function recolorHues(string, baseColor)
+    {{
+      var base = colorToHsl(baseColor);
+      var parts = string.split(/#/);
+      var newString = parts[0];
+      for (var i = 1; i &lt; parts.length; i++)
+      {{
+        var part = parts[i];
+        newString += part.match(/^[0-9a-f]{{6}}/i)
+                   ? rgb(hslToRgb(colorToHsl("#" + part.substring(0, 6))[0], base[1], base[2])) + part.substring(6)
+                   : "#" + part;
       }}
       return newString;
     }}
@@ -1548,6 +1680,7 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         document.getElementById("{$ui:INLINE}").checked = true;
         document.getElementById("width").value = {$s:page-width};
         document.getElementsByName("spread")[0].value = 0;
+        selectMode("auto");
         setRgb("{$style:default-color}", true);
       }}
       else
@@ -1558,8 +1691,10 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
         document.getElementById("{$ui:INLINE}").checked = {ui:options() = $ui:INLINE};
         document.getElementById("width").value = {ui:parameter-values("width", string($s:page-width))};
         document.getElementsByName("spread")[0].value = oldSpread;
+        selectMode(oldMode);
         setRgb(oldColor, true);
       }}
+      preview();
       setCookies();
       changeText();
     }}
@@ -1643,9 +1778,10 @@ declare function ui:welcome-tab() as element(xhtml:div)
  : Return spinner to be shown while waiting for server requests.
  :
  : @param $color the color code.
+ : @param $mode "light", "dark" or "auto".
  : @return a sequence of XHTML and SVG elements making up the spinner.
  :)
-declare function ui:spinner($color as xs:string)
+declare function ui:spinner($color as xs:string, $mode as xs:string)
 {
   let $svg-width := 100
   let $svg-height := 100
@@ -1657,14 +1793,25 @@ declare function ui:spinner($color as xs:string)
   let $l1 := 0.90
   let $l2 := ($l1 - $l0) div $colors
 
-  let $sector-color :=
-    for $i in 1 to $sectors
-    let $sector := $sectors + 1 - $i
-    return
-      if ($sector > $colors) then
-        c:relative-color($color, 0.7, $l1)
-      else
-        c:relative-color($color, 0.7, $l0 + ($sector - 1) * $l2)
+  let $sector-colors :=
+    function($m as xs:string)
+    {
+      for $i in 1 to $sectors
+      let $sector := $sectors + 1 - $i
+      return
+        if ($sector > $colors) then
+          c:role-color($color, c:ui-role(0.7, $l1), 0, $m)
+        else
+          c:role-color($color, c:ui-role(0.7, $l0 + ($sector - 1) * $l2), 0, $m)
+    }
+  let $sector-color := $sector-colors(if ($mode eq "dark") then "dark" else "light")
+  let $dark-test :=
+    if ($mode eq "dark") then
+      "true"
+    else if ($mode eq "auto") then
+      "window.matchMedia('(prefers-color-scheme: dark)').matches"
+    else
+      "false"
 
   let $r1 := ($svg-width - 2) div 2
   let $r2 := ($svg-width - 2) div 5
@@ -1707,15 +1854,21 @@ declare function ui:spinner($color as xs:string)
       var greyout = document.getElementById("greyout");
       var spinner = document.getElementById("spinner");
       var sectors = spinner.getElementsByTagNameNS("http://www.w3.org/2000/svg", "path");
-      var colors = ["{string-join($sector-color, """, """)}"];
+      var colorsLight = ["{string-join($sector-colors("light"), """, """)}"];
+      var colorsDark = ["{string-join($sector-colors("dark"), """, """)}"];
       var spinning = 0;
+
+      function isDark()
+      {{
+        return {$dark-test};
+      }}
 
       function resizeSpinner()
       {{
         if (spinning &gt; 0)
         {{
           var height = window.innerHeight;
-          greyout.setAttribute("style", "background-color: {c:relative-color($color, 1.0, 0.91)}; opacity: 0.7; height: " + height + "px; width: 100%; position:absolute; top: 0px; left: 0px; z-index: 100001;");
+          greyout.setAttribute("style", "background-color: " + (isDark() ? "{c:color($color, "ui-highlight-background", 0, "dark")}" : "{c:color($color, "ui-highlight-background", 0, "light")}") + "; opacity: 0.7; height: " + height + "px; width: 100%; position:absolute; top: 0px; left: 0px; z-index: 100001;");
 
           var left = Math.round(window.pageXOffset + (window.innerWidth - {$svg-width}) / 2);
           var top = Math.round(window.pageYOffset + (window.innerHeight - {$svg-height}) / 2);
@@ -1757,6 +1910,7 @@ declare function ui:spinner($color as xs:string)
             spinning = 1;
             resizeSpinner();
           }}
+          var colors = isDark() ? colorsDark : colorsLight;
           for (var s = {$sectors - 1}; s >= 0; --s)
           {{
             sectors[(color + s) % {$sectors}].setAttribute("style", "fill:" + colors[s] + "; opacity: 0.6");
@@ -1916,6 +2070,7 @@ declare function ui:parse($ebnf as xs:string, $color as xs:string) as node()+
           xs:integer(xf:parameter-values($ui:request, "width")),
           $color,
           xs:integer((xf:parameter-values($ui:request, "spread"), "0")[.][1]),
+          ui:mode(),
           false(),
           (
             xf:parameter-values($ui:request, "myUri0")[.],
@@ -2026,6 +2181,22 @@ declare function ui:color() as xs:string
 };
 
 (:~
+ : Get the mode from http parameter or cookie. The mode is "auto" to follow
+ : the setting of the operating system or browser, "light" or "dark".
+ :
+ : @return the mode.
+ :)
+declare function ui:mode() as xs:string
+{
+  let $mode := normalize-space(ui:parameter-values("mode", ())[1])
+  return
+    if ($mode = ("auto", "light", "dark")) then
+      $mode
+    else
+      "auto"
+};
+
+(:~
  : The color argument for get URIs.
  :
  : @param $delimiter the delimiter to be prepended to the result string.
@@ -2073,12 +2244,19 @@ declare function ui:download()
   let $text-format := $download-options[. = ("xhtml", "html", "md")]
   let $graphics-format := $download-options[. = ("svg", "png")]
   let $embedded := $download-options = "embedded"
+  let $xhtml := xf:parameter-values($ui:request, "xhtml")[1]
+  let $png-mode := xf:parameter-values($ui:request, "png-mode")[1]
+  let $xhtml :=
+    if ($graphics-format ne "png") then
+      $xhtml
+    else
+      ui:resolve-mode($xhtml, $png-mode)
   return
     if (not($embedded)) then
     (
       xf:set-serialization-parameter($ui:output-options, "media-type", "application/zip"),
       xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".zip"))),
-      xf:xhtml-to-zip(xf:parameter-values($ui:request, "xhtml")[1], $text-format, $graphics-format)
+      xf:xhtml-to-zip($xhtml, $text-format, $graphics-format)
     )
     else if ($text-format = "xhtml" and $graphics-format = "svg") then
     (
@@ -2094,7 +2272,7 @@ declare function ui:download()
       xf:set-serialization-parameter($ui:output-options, "method", "text"),
       xf:set-serialization-parameter($ui:output-options, "media-type", "text/markdown"),
       xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".md"))),
-      d:disassemble(xf:parse-xml(xf:parameter-values($ui:request, "xhtml")[1]), $text-format, $graphics-format, $embedded)/files/file!string(.)
+      d:disassemble(xf:parse-xml($xhtml), $text-format, $graphics-format, $embedded)/files/file!string(.)
     )
     else if ($text-format = "html") then
     (
@@ -2102,7 +2280,7 @@ declare function ui:download()
       xf:set-serialization-parameter($ui:output-options, "method", "html"),
       xf:set-serialization-parameter($ui:output-options, "media-type", "text/html"),
       xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".html"))),
-      d:disassemble(xf:parse-xml(xf:parameter-values($ui:request, "xhtml")[1]), $text-format, $graphics-format, $embedded)/files/file/node()
+      d:disassemble(xf:parse-xml($xhtml), $text-format, $graphics-format, $embedded)/files/file/node()
     )
     else
     (
@@ -2110,7 +2288,37 @@ declare function ui:download()
       xf:set-serialization-parameter($ui:output-options, "method", "xhtml"),
       xf:set-serialization-parameter($ui:output-options, "media-type", "application/xhtml+xml"),
       xf:set-header($ui:response, "Content-Disposition", concat("attachment; filename=", ui:name("diagram", ".xhtml"))),
-      d:disassemble(xf:parse-xml(xf:parameter-values($ui:request, "xhtml")[1]), $text-format, $graphics-format, $embedded)/files/file/node()
+      d:disassemble(xf:parse-xml($xhtml), $text-format, $graphics-format, $embedded)/files/file/node()
+    )
+};
+
+(:~
+ : Resolve the color mode of an XHTML document, that was created for mode
+ : "auto", by dealing with the media queries for dark color schemes in its style
+ : sheets. For "dark", the media query is dropped and its rules are kept. They
+ : follow the ones for light mode, so they override them. For anything else,
+ : the media queries are removed together with their rules, which results in
+ : light mode. This is for PNG graphics, which are rendered without media
+ : queries, so that the surrounding text matches them. Only the contents of
+ : style elements are touched, so that a grammar that happens to contain such
+ : text is left alone.
+ :
+ : @param $xhtml the XHTML document, unparsed.
+ : @param $mode "dark" or anything else for light.
+ : @return the XHTML document, unparsed.
+ :)
+declare function ui:resolve-mode($xhtml as xs:string, $mode as xs:string?) as xs:string
+{
+  let $replacement := if ($mode eq "dark") then "$1" else ""
+  return
+    string-join
+    (
+      for $part in analyze-string($xhtml, "<style[^>]*>.*?</style>", "s")/*
+      return
+        if ($part/self::fn:match) then
+          replace($part, "@media \(prefers-color-scheme: dark\)\s*\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}", $replacement)
+        else
+          string($part)
     )
 };
 

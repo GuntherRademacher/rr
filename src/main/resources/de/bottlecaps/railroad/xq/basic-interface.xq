@@ -21,13 +21,14 @@ declare function i:ebnf-to-xhtml($ebnf as xs:string,
                                  $width as xs:integer?,
                                  $color as xs:string?,
                                  $spread as xs:integer,
+                                 $mode as xs:string,
                                  $uri as xs:string?) as document-node(element(xhtml:html))
 {
   document
   {
     <html xmlns="http://www.w3.org/1999/xhtml">
-      <head>{s:head(($color, $style:default-color)[1], $spread, $width, ())}</head>
-      <body>{i:ebnf-to-svg($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, $uri)}</body>
+      <head>{s:head(($color, $style:default-color)[1], $spread, $mode, $width, ())}</head>
+      <body>{i:ebnf-to-svg($ebnf, $show-ebnf, $recursion-elimination, $factoring, $inline, $keep, $width, $color, $spread, $mode, $uri)}</body>
     </html>
   }
 };
@@ -41,6 +42,7 @@ declare function i:ebnf-to-svg($ebnf as xs:string,
                                $width as xs:integer?,
                                $color as xs:string?,
                                $spread as xs:integer,
+                               $mode as xs:string,
                                $uri as xs:string?) as node()*
 {
   let $parse-tree := p:parse-Grammar($ebnf)
@@ -61,6 +63,7 @@ declare function i:ebnf-to-svg($ebnf as xs:string,
         ($width, $s:page-width)[1],
         ($color, $style:default-color)[1],
         $spread,
+        $mode,
         false(),
         $uri
       )

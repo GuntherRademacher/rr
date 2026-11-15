@@ -14,12 +14,149 @@ declare variable $c:default-saturation := 1.0;
 declare variable $c:default-lightness := 0.65;
 
 (:~
- : Lightness values of diagram boxes.
+ : The lightness of the light text candidate. A text color is chosen from
+ : a dark and a light candidate, whichever contrasts better with the
+ : background.
  :)
-declare variable $c:diagram-lightness := map {
-   "terminal": map {"text": 0.04, "background": $c:default-lightness},
-"nonterminal": map {"text": 0.05, "background": 0.81},
-     "regexp": map {"text": 0.06, "background": 0.89}
+declare variable $c:light-text-lightness := 0.94;
+
+(:~
+ : Creates a role for a color that is derived from the base color, and
+ : has different lightness in light mode and in dark mode.
+ :
+ : @param $saturation the saturation factor, relative to the base color.
+ : @param $light the lightness in light mode.
+ : @param $dark the lightness in dark mode.
+ : @return the role.
+ :)
+declare function c:role($saturation as xs:decimal, $light as xs:decimal, $dark as xs:decimal) as map(*)
+{
+  map
+  {
+    "kind": "color",
+    "saturation": $saturation,
+    "lightness": map {"light": $light, "dark": $dark},
+    "hue-shift": 0
+  }
+};
+
+(:~
+ : Creates a role for a color of the user interface. In dark mode, the
+ : lightness is reversed.
+ :
+ : @param $saturation the saturation factor, relative to the base color.
+ : @param $lightness the lightness in light mode.
+ : @return the role.
+ :)
+declare function c:ui-role($saturation as xs:decimal, $lightness as xs:decimal) as map(*)
+{
+  c:role($saturation, $lightness, 1 - $lightness)
+};
+
+(:~
+ : Creates a role for a diagram color that is the same in light mode and
+ : in dark mode.
+ :
+ : @param $kind "color": derived from the base color, "base": the base color
+ :        itself, or "text": a text color on top of the color of another role,
+ :        chosen to contrast with it.
+ : @param $lightness the lightness of the role. For text roles, this is the
+ :        lightness of the dark text candidate.
+ : @param $hue-shift the factor for the hue offset: when a hue offset is
+ :        given, the hue of the color is shifted by that offset times this factor.
+ : @param $on the role of the background color, for text roles.
+ : @return the role.
+ :)
+declare %private function c:fixed-role(
+  $kind as xs:string,
+  $lightness as xs:decimal,
+  $hue-shift as xs:integer,
+  $on as xs:string?) as map(*)
+{
+  map:merge
+  ((
+    map
+    {
+      "kind": $kind,
+      "saturation": 1.0,
+      "lightness": map {"light": $lightness, "dark": $lightness},
+      "hue-shift": $hue-shift
+    },
+    for $on in $on return map {"on": $on}
+  ))
+};
+
+(:~
+ : The color roles. Each color of the diagrams and of the user interface is
+ : derived from the base color according to its role. The role defines how
+ : saturation and lightness relate to the base color, in light mode and in
+ : dark mode.
+ :
+ : The roles are also made available to the JavaScript code of the user
+ : interface, see c:roles-json, so that colors can be recomputed there.
+ :
+ : The dark mode lightness of line and box-outline is preliminary. The foreground of buttons is a
+ : text role, so that it contrasts with the button background for any base color.
+ :)
+declare variable $c:roles as map(xs:string, map(*)) := map
+{
+  (: diagram :)
+  "terminal-background":     c:fixed-role("base",  $c:default-lightness, 0, ()),
+  "nonterminal-background":  c:fixed-role("color", 0.81,                 1, ()),
+  "regexp-background":       c:fixed-role("color", 0.89,                 2, ()),
+  "terminal-text":           c:fixed-role("text",  0.04,                 0, "terminal-background"),
+  "nonterminal-text":        c:fixed-role("text",  0.05,                 1, "nonterminal-background"),
+  "regexp-text":             c:fixed-role("text",  0.06,                 2, "regexp-background"),
+  "line":                    c:role(1.0, 0.10, 0.92),
+  "box-outline":             c:role(1.0, 0.10, 0.20),
+  "shadow":                  c:role(1.0, 0.10, 0.20),
+
+  (: user interface :)
+  "ui-background":           c:ui-role(1.0, 0.97),
+  "ui-foreground":           c:ui-role(1.0, 0.03),
+  "ui-button-background":    c:ui-role(0.6, 0.86),
+  "ui-button-foreground":    c:fixed-role("text", 0.25, 0, "ui-button-background"),
+  "ui-highlight-background": c:ui-role(1.0, 0.91),
+  "ui-highlight-foreground": c:ui-role(1.0, 0.01),
+  "ui-editor-background":    c:ui-role(1.0, 0.99)
+};
+
+(:~
+ : The color roles as JSON, for use in JavaScript.
+ :
+ : @return the JSON string.
+ :)
+declare function c:roles-json() as xs:string
+{
+  serialize($c:roles, map {"method": "json"})
+};
+
+(:~
+ : The colors that the roles have for a given base color, without hue offset,
+ : as a JSON object that maps each color code to an array of the roles and
+ : modes yielding it. JavaScript code uses this to identify the role of a
+ : color, rather than guessing it from the lightness of the color.
+ :
+ : @param $base-color the base color code.
+ : @return the JSON string.
+ :)
+declare function c:palette-json($base-color as xs:string) as xs:string
+{
+  let $entries :=
+    for $role in map:keys($c:roles)
+    for $mode in ("light", "dark")
+    order by $role, $mode
+    return map {"color": upper-case(c:color($base-color, $role, 0, $mode)), "role": $role, "dark": $mode eq "dark"}
+  return
+    serialize
+    (
+      map:merge
+      (
+        for $color in distinct-values($entries ! .?color)
+        return map {$color: array {$entries[?color eq $color] ! map {"role": .?role, "dark": .?dark}}}
+      ),
+      map {"method": "json"}
+    )
 };
 
 (:~
@@ -353,60 +490,87 @@ declare %private function c:rgb-to-hsl($r, $g, $b)
       return (xs:integer((($h * 60) + 360 + 0.5) mod 360), $s, $l)
 };
 
-declare %private function c:background-lightness($lightness as xs:decimal) as xs:decimal?
-{
-  for $pair in $c:diagram-lightness?*
-  where abs($pair?text - $lightness) < 0.005
-  return $pair?background
-};
-
-declare %private function c:is-background-lightness($lightness as xs:decimal) as xs:boolean
-{
-  some $pair in $c:diagram-lightness?*
-  satisfies abs($pair?background - $lightness) < 0.005
-};
-
-declare %private function c:is-border-lightness($lightness as xs:decimal) as xs:boolean
-{
-  abs(0.10 - $lightness) < 0.005
-};
-
-declare %private variable $c:dark-mode := true();
-
-declare function c:relative-color(
+(:~
+ : Computes the color of a role for a base color.
+ :
+ : @param $base-color the base color code.
+ : @param $role the name of the role, a key of $c:roles.
+ : @param $spread the hue offset.
+ : @param $mode "dark" for dark mode, anything else for light mode.
+ : @return the color code.
+ :)
+declare function c:color(
   $base-color as xs:string,
-  $role-saturation as xs:decimal,
-  $role-lightness as xs:decimal) as xs:string
+  $role as xs:string,
+  $spread as xs:integer,
+  $mode as xs:string) as xs:string
 {
-  let $hsl := c:rgb-to-hsl($base-color)
-  let $base-hue := $hsl[1]
-  let $base-saturation := $hsl[2]
-  let $base-lightness := $hsl[3]
-  let $target-saturation := $base-saturation * $role-saturation
-  let $background-lightness := c:background-lightness($role-lightness)
+  c:role-color($base-color, $c:roles($role), $spread, $mode)
+};
+
+(:~
+ : Computes the color of a role given as a map. This is for roles that
+ : are not predefined, see c:role.
+ :
+ : @param $base-color the base color code.
+ : @param $role the role.
+ : @param $spread the hue offset.
+ : @param $mode "dark" for dark mode, anything else for light mode.
+ : @return the color code.
+ :)
+declare function c:role-color(
+  $base-color as xs:string,
+  $role as map(*),
+  $spread as xs:integer,
+  $mode as xs:string) as xs:string
+{
+  let $shift := $role?hue-shift * $spread
   return
-    if (exists($background-lightness)) then
-      let $target-background-lightness := c:convert-lightness($base-lightness, $background-lightness, 1.0)
-      let $background-brightness := c:brightness(c:hsl-to-rgb($base-hue, $target-saturation, $target-background-lightness))
-      let $dark-text-lightness := c:convert-lightness($base-lightness, $role-lightness, 1.0)
-      let $light-text-lightness := c:convert-lightness($base-lightness, 0.94, 1.0)
-      let $dark := c:hsl-to-rgb($base-hue, $target-saturation, $dark-text-lightness)
-      let $light := c:hsl-to-rgb($base-hue, $target-saturation, $light-text-lightness)
-      return
-        if (abs(c:brightness($dark) - $background-brightness) gt abs(c:brightness($light) - $background-brightness)) then
-          c:rgb($dark)
-        else
-          c:rgb($light)
+    if ($shift eq 0) then
+      c:derive-color($base-color, $role, $mode)
     else
-      let $mode-lightness :=
-        if (c:is-background-lightness($role-lightness) or not($c:dark-mode)) then
-          $role-lightness
-        else if (c:is-border-lightness($role-lightness)) then
-          0.2	
+      let $hsl := c:rgb-to-hsl($base-color)
+      let $shifted := c:rgb(c:hsl-to-rgb(($hsl[1] + $shift) mod 360, $hsl[2], $hsl[3]))
+      return
+        if ($role?kind eq "text") then
+          c:derive-color($shifted, $c:roles("terminal-text"), $mode)
         else
-          1 - $role-lightness          
-      let $target-lightness := c:convert-lightness($base-lightness, $mode-lightness, $role-saturation)
-      return c:rgb(c:hsl-to-rgb($base-hue, $target-saturation, $target-lightness))
+          $shifted
+};
+
+declare %private function c:derive-color(
+  $base-color as xs:string,
+  $role as map(*),
+  $mode as xs:string) as xs:string
+{
+  if ($role?kind eq "base") then
+    $base-color
+  else
+    let $mode := if ($mode eq "dark") then "dark" else "light"
+    let $hsl := c:rgb-to-hsl($base-color)
+    let $base-hue := $hsl[1]
+    let $base-saturation := $hsl[2]
+    let $base-lightness := $hsl[3]
+    let $target-saturation := $base-saturation * $role?saturation
+    let $role-lightness := $role?lightness?($mode)
+    return
+      if ($role?kind eq "text") then
+        let $background-lightness := $c:roles($role?on)?lightness?($mode)
+        let $background-role-saturation := $c:roles($role?on)?saturation
+        let $target-background-lightness := c:convert-lightness($base-lightness, $background-lightness, $background-role-saturation)
+        let $background-brightness := c:brightness(c:hsl-to-rgb($base-hue, $base-saturation * $background-role-saturation, $target-background-lightness))
+        let $dark-text-lightness := c:convert-lightness($base-lightness, $role-lightness, 1.0)
+        let $light-text-lightness := c:convert-lightness($base-lightness, $c:light-text-lightness, 1.0)
+        let $dark-text := c:hsl-to-rgb($base-hue, $target-saturation, $dark-text-lightness)
+        let $light-text := c:hsl-to-rgb($base-hue, $target-saturation, $light-text-lightness)
+        return
+          if (abs(c:brightness($dark-text) - $background-brightness) gt abs(c:brightness($light-text) - $background-brightness)) then
+            c:rgb($dark-text)
+          else
+            c:rgb($light-text)
+      else
+        let $target-lightness := c:convert-lightness($base-lightness, $role-lightness, $role?saturation)
+        return c:rgb(c:hsl-to-rgb($base-hue, $target-saturation, $target-lightness))
 };
 
 declare %private function c:convert-lightness(
