@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.Locale;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +26,20 @@ public class ServletRequest implements Request
     this.httpServletRequest = httpServletRequest;
   }
 
+  private boolean isMultipart()
+  {
+    String contentType = httpServletRequest.getContentType();
+    return contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("multipart/");
+  }
+
   @Override
   public Collection<MultiPart> getParts() throws IOException
   {
+    // Servlet 6 containers throw ServletException for non-multipart requests,
+    // e.g. HEAD or urlencoded POST, where there simply are no parts.
+    if (! isMultipart())
+      return Collections.emptyList();
+
     try
     {
       Collection<Part> parts = httpServletRequest.getParts();
@@ -92,6 +105,9 @@ public class ServletRequest implements Request
   @Override
   public MultiPart getPart(String partName) throws IOException
   {
+    if (! isMultipart())
+      return null;
+
     try
     {
       return new ServletMultiPart(httpServletRequest.getPart(partName));

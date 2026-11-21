@@ -153,7 +153,8 @@ public class ExtensionFunctions
   }
 
   public static boolean methodGet(Request request) {
-    return "GET".equals(request.getMethod());
+    Object method = request.getMethod();
+    return "GET".equals(method) || "HEAD".equals(method);
   }
 
   public static void setHeader(Response response, String name, String value) {
