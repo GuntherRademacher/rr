@@ -1546,21 +1546,21 @@ declare function ui:javascript($tab as xs:string, $submit-on-load as xs:boolean)
       var baseHue = baseHsl[0];
       var baseSaturation = baseHsl[1];
       var baseLightness = baseHsl[2];
-      var targetSaturation = baseSaturation * role.saturation;
+      var targetSaturation = baseSaturation * role.saturation[mode];
       var roleLightness = role.lightness[mode];
       if (role.kind === "text")
       {{
         var backgroundRole = colorRoles[role.on];
         var backgroundLightness = backgroundRole.lightness[mode];
-        var targetBackgroundLightness = convertLightness(baseLightness, backgroundLightness, backgroundRole.saturation);
-        var backgroundBrightness = brightness(hslToRgb(baseHue, baseSaturation * backgroundRole.saturation, targetBackgroundLightness));
+        var targetBackgroundLightness = convertLightness(baseLightness, backgroundLightness, backgroundRole.saturation[mode]);
+        var backgroundBrightness = brightness(hslToRgb(baseHue, baseSaturation * backgroundRole.saturation[mode], targetBackgroundLightness));
         var darkText  = hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, roleLightness, 1.0));
         var lightText = hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, lightTextLightness, 1.0));
         return Math.abs(brightness(darkText)  - backgroundBrightness) &gt;
                Math.abs(brightness(lightText) - backgroundBrightness)
              ? rgb(darkText) : rgb(lightText);
       }}
-      return rgb(hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, roleLightness, role.saturation)));
+      return rgb(hslToRgb(baseHue, targetSaturation, convertLightness(baseLightness, roleLightness, role.saturation[mode])));
     }}
 
     /* Convert a color of the palette of the default base color to the same role in another palette.

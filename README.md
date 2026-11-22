@@ -69,13 +69,14 @@ follows the color scheme of the operating system or browser:
 
 Some things to be aware of:
 
-- In auto mode, the output contains CSS media queries (`prefers-color-scheme`), that switch the colors. When
-  displaying SVG graphics from an `<img>` element, like Markdown viewers do, browsers apply the used
-  `color-scheme` of the embedding element to the image. A website that sets `color-scheme: light` or
-  `color-scheme: dark` can therefore select the palette of an auto diagram without separate files. If the theme
-  switch of the website does not expose its selection through `color-scheme`, the image follows the color scheme
-  of the operating system or browser instead. In that case, create light and dark graphics separately, and select
-  them on the website, e.g. by a `<picture>` element.
+- In auto mode, the output contains CSS media queries (`prefers-color-scheme`), that switch the colors. An SVG
+  graphic that is displayed on its own follows the color scheme of the operating system or browser. When it is
+  displayed from an `<img>` element, like Markdown viewers do, the page cannot pass its own theme on to the
+  image: a viewer that colors itself according to its own theme, such as the Markdown preview of VS Code, still
+  shows the image in the color scheme of the operating system or browser. Some browsers may take the
+  `color-scheme` of the embedding page into account, but this should not be relied upon. If you need the diagrams
+  to follow a theme setting, create light and dark graphics separately, and select them there, e.g. by a
+  `<picture>` element.
 - PNG graphics cannot do this, so auto mode is not supported for them. In batch mode, `-png` together with
   `-mode:auto` is rejected. In the GUI, when PNG is selected for download while the mode is auto, the
   Download panel asks for light or dark colors, preselected by the current color scheme of the browser.

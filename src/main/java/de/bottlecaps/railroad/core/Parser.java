@@ -1,4 +1,4 @@
-// This file was generated on Sat Nov 14, 2026 11:00 (UTC+01) by REx v7.0 which is Copyright (c) 1979-2026 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Sun Nov 22, 2026 12:31 (UTC+01) by REx v7.1-SNAPSHOT which is Copyright (c) 1979-2026 by Gunther Rademacher <grd@gmx.net>
 // REx command line: -tree -a none -java -saxon -name de.bottlecaps.railroad.core.Parser Parser.ebnf
 
 package de.bottlecaps.railroad.core;
@@ -53,16 +53,11 @@ public class Parser
            : "syntax error";
     }
 
-    public void serialize(EventHandler eventHandler)
-    {
-    }
-
     public int getBegin() {return begin;}
     public int getEnd() {return end;}
     public int getState() {return state;}
     public int getOffending() {return offending;}
     public int getExpected() {return expected;}
-    public boolean isAmbiguousInput() {return false;}
   }
 
   public interface EventHandler
@@ -119,6 +114,11 @@ public class Parser
       Nonterminal current = stack[top];
       current.children = Arrays.copyOf(current.children, current.children.length + 1);
       current.children[current.children.length - 1] = s;
+    }
+
+    public Nonterminal getRoot()
+    {
+      return top >= 0 ? stack[0] : null;
     }
 
     public void serialize(EventHandler e)
