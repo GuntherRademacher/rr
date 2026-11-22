@@ -22,6 +22,7 @@ public class Railroad
 {
   private static final String COLOR_PATTERN = "#[0-9a-fA-F]{6}";
   private static final String INTEGER_PATTERN = "[0-9]+";
+  private static final String MODE_PATTERN = "auto|light|dark";
   private static final int DEFAULT_PORT = 8080;
 
   public static void main(String[] args) throws Exception
@@ -36,6 +37,7 @@ public class Railroad
     boolean distZip = false;
     Charset charset = null;
     boolean errors = false;
+    String outputFile = null;
 
     for (int i = 0; i < args.length; ++i)
     {
@@ -85,6 +87,20 @@ public class Railroad
         else
         {
           System.err.println("invalid offset value");
+          System.err.println();
+          errors = true;
+          break;
+        }
+      }
+      else if (arg.startsWith("-mode:"))
+      {
+        try
+        {
+          generator.setMode(arg.substring(6));
+        }
+        catch (IllegalArgumentException e)
+        {
+          System.err.println("invalid mode, mode must match " + MODE_PATTERN);
           System.err.println();
           errors = true;
           break;
@@ -163,7 +179,7 @@ public class Railroad
       }
       else if (arg.startsWith("-out:"))
       {
-        generator.setOutput(new FileOutputStream(arg.substring(5)));
+        outputFile = arg.substring(5);
       }
       else if (arg.equals("-keeprecursion"))
       {
@@ -250,8 +266,21 @@ public class Railroad
     }
     else
     {
+      try
+      {
+        generator.validate();
+      }
+      catch (IllegalStateException e)
+      {
+        System.err.println(e.getMessage());
+        System.exit(1);
+      }
+      // read the input before opening the output, so that neither is touched when the settings are rejected,
+      // and so that the output file can safely be the same as the input file
       byte[] bytes = read(System.in);
       String grammar = decode(charset, bytes);
+      if (outputFile != null)
+        generator.setOutput(new FileOutputStream(outputFile));
       generator.generate(grammar);
     }
   }
@@ -277,6 +306,8 @@ public class Railroad
     out.println("  -noepsilon       remove nonterminal references that derive to epsilon only");
     out.println("  -color:COLOR     use COLOR as base color, pattern: " + COLOR_PATTERN);
     out.println("  -offset:OFFSET   hue offset to secondary color in degrees");
+    out.println("  -mode:MODE       color mode, one of " + MODE_PATTERN + " (default light), auto follows the color");
+    out.println("                   scheme of the viewer, and is not supported for PNG graphics");
     out.println("  -html            create HTML output, rather than XHTML");
     out.println("  -md              create Markdown output, rather than XHTML");
     out.println("  -png             create PNG graphics, rather than SVG");

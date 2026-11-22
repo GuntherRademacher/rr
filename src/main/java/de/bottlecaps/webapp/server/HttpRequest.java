@@ -308,6 +308,7 @@ public class HttpRequest implements Request
   @Override
   public String getRequestURI()
   {
-    return httpExchange.getRequestURI().toString();
+    // as for servlets, this is the path only, without query string
+    return httpExchange.getRequestURI().getRawPath();
   }
 }
